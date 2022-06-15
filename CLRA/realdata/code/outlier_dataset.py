@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import mat73
 from scipy.io import loadmat
 from sklearn.model_selection import train_test_split
 from scipy.io import arff
@@ -9,9 +10,12 @@ def load_outlier_data(base_path, filename):
     if filename.endswith('.csv'):
         data_raw = pd.pandas.read_csv(base_path + filename)
     elif filename.endswith('.mat'):
-        mat = loadmat(base_path + filename)
+        if 'http' in filename:
+            mat = mat73.loadmat(base_path + filename)
+        else:
+            mat = loadmat(base_path + filename)
         X = mat['X']
-        Y = mat['y']
+        Y = mat['y'].reshape(-1,1)
         data = np.concatenate((X,Y),axis=1)
         index   = [str(i) for i in range(0, len(Y))]
         columns = ["X_" + str(i) for i in range(0, X.shape[1])]
@@ -40,4 +44,6 @@ def get_data_is_outlier(name, base_path):
     data = data[shuffle]
     is_outlier = is_outlier[shuffle]
     
-    return data, is_outlier.astype(int)
+    return data, np.array(is_outlier.astype(int))
+
+

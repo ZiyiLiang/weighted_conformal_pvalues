@@ -38,7 +38,7 @@ else:
 if local_machine:
     base_path = "/mnt/c/users/liang/OneDrive/Desktop/CLRA/codes/realdata/data/"
 else:
-    base_path = '/home1/ziyilian/CLRA/realdata/data'
+    base_path = '/home1/ziyilian/CLRA/realdata/data/'
 
 # sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/code')
 # sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/data')
@@ -76,8 +76,8 @@ from outlier_dataset import get_data_is_outlier
 from methods_experiment import oc, bc, clra
 
 
-num_train = 1
-num_test = 5
+num_train = 10
+num_test = 10
 purity = 0.9
 alpha = 0.1
 
@@ -100,7 +100,7 @@ DATASET_LIST =  ["cover.mat",
                  "mammography.mat",
                  "pendigits.mat",
                  "ALOI_withoutdupl.arff",
-                 "KDDCup99_withoutdupl_catremoved.arff"
+                 "http.mat"
                  ]
 
 
@@ -137,7 +137,8 @@ n_clean = int(tot_n - n_outliers)
 n_train = [int(np.floor(n_clean*0.5)), int(np.floor(n_outliers*0.5))]
 n_calib = [min(2000, np.round(0.5*n_train[0]).astype(int)),
            min(2000, np.round(0.5*n_train[1]).astype(int))]
-n_test = 700
+# set a smaller test size for pendigits dataset since not enough outliers 
+n_test = 700 if data_set_id == 4 else 1000
 purity_test = 0.9
 
 print("n_outliers {:d}, tot_n {:d}, n_clean {:d}, n_train_in {:d},n_train_out {:d},\
