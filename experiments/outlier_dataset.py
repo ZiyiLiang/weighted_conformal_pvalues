@@ -27,23 +27,21 @@ def load_outlier_data(base_path, filename):
         data_raw = data_raw.drop(columns=['id'])
         data_raw = data_raw.rename(columns={"outlier": "Class"})
         data_raw['Class'] = (data_raw['Class']==b'yes').astype(float)
-        
-        
+
+
     return data_raw
 
 def get_data_is_outlier(name, base_path):
-    
+
     data_raw = load_outlier_data(base_path, name)
     p = data_raw.shape[1]
-    
+
     # Extract outliers
     is_outlier = (data_raw['Class']==1)
     data = np.array(data_raw)[:,0:(p-1)]
-    
+
     shuffle = np.random.permutation(data.shape[0])
     data = data[shuffle]
     is_outlier = is_outlier[shuffle]
-    
+
     return data, np.array(is_outlier.astype(int))
-
-

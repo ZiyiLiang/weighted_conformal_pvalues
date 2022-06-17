@@ -73,6 +73,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
 from outlier_dataset import get_data_is_outlier
+
+sys.path.append('../methods')
 from methods_experiment import oc, bc, clra
 
 

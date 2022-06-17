@@ -1,9 +1,16 @@
 import numpy as np
 import statistics as stats
+import sys
+
+sys.path.append('../third_party')
+
 from arc.classification import ProbabilityAccumulator as ProbAccum
 
-
 def bc(X_cal, Y_cal, X_test, Y_test, black_box):
+    """
+    Standard conformal p-values from binary classifier
+    """
+
     classifier = black_box
 
     # Compute conformity scores on calibration data

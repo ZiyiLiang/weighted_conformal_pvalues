@@ -5,7 +5,6 @@ data/
 logs/
 results/
 
-arc/
 conditional-conformal-pvalues/
 cqr/
 cqr/comparison
