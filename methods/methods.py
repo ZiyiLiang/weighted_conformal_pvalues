@@ -3,14 +3,16 @@ import copy
 import sys
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import pdb
 
 sys.path.append('../third_party')
 
 class WeightedOneClassConformal:
-    def __init__(self, X_in, X_out, bbox_in, bbox_out, calib_size=0.5, random_state=2022, verbose=True, progress=True):
+    def __init__(self, X_in, X_out, bbox_in, bbox_out, calib_size=0.5, random_state=2022, tuning=True, verbose=True, progress=True):
         self.bbox_in = copy.deepcopy(bbox_in)
         self.bbox_out = copy.deepcopy(bbox_out)
+        self.tuning = True
         self.verbose = verbose
         self.progress = progress
 
@@ -28,6 +30,8 @@ class WeightedOneClassConformal:
         self.scores_outin_calib = self.bbox_out.score_samples(self.X_in_calib)
         # Pre-compute conformity scores for outlier calibration data using outlier model
         self.scores_out_calib = self.bbox_out.score_samples(self.X_out_calib)
+        # Pre-compute conformity scores for outlier calibration data using inlier model
+        self.scores_inout_calib = self.bbox_in.score_samples(self.X_out_calib)
 
     def _train(self, bbox, X_train):
         # Fit the black-box one-class classification model on the training data
@@ -40,8 +44,18 @@ class WeightedOneClassConformal:
             sys.stdout.flush()
 
     def _calibrate_in(self, score_test):
+        scores_out = self.scores_inout_calib
         # Concatenate conformity scores for inlier calibration data and test point
         scores = np.append(self.scores_in_calib, score_test)
+
+        if self.tuning:
+            # Large score <-> large p-value
+            # We expect the outliers should have smaller scores
+            median_out = np.median(scores_out)
+            median_in = np.median(scores)
+            if median_in < median_out:
+                scores = -scores
+
         # Compute conformal p-values
         n_cal = len(scores) - 1
         scores_mat = np.tile(scores, (len(scores),1))
@@ -52,9 +66,20 @@ class WeightedOneClassConformal:
     def _calibrate_out(self, score_test):
         # Concatenate conformity scores based on outlier model for inlier calibration data and test point
         scores = np.append(self.scores_outin_calib, score_test)
+        scores_cal = self.scores_out_calib
+
+        if self.tuning:
+            # Large score <-> large p-value
+            # We expect the inliers should haeve smaller scores
+            median_out = np.median(scores_cal)
+            median_in = np.median(scores)
+            if median_in > median_out:
+                scores = -scores
+                scores_cal = -scores_cal
+
         # Compute conformal p-values
         n_cal = len(scores) - 1
-        scores_mat = np.tile(self.scores_out_calib, (len(scores),1))
+        scores_mat = np.tile(scores_cal, (len(scores),1))
         tmp = np.sum(scores_mat <= scores.reshape(len(scores),1), 1)
         pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
