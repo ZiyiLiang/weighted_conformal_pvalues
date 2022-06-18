@@ -2,6 +2,8 @@ import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.model_selection import train_test_split
 from scipy import optimize
+import scipy.special as sp
+
 import pdb
 
 class DataModel:
@@ -49,6 +51,18 @@ class GaussianMixture(DataModel):
 
 
 class ConcentricCircles(DataModel):
+    def _sample_clean(self, n):
+        p = self.p
+        X = np.random.randn(n, p)
+        return X
+
+    def _sample_outlier(self, n):
+        p = self.p
+        X = np.sqrt(self.a)*np.random.randn(n, p)
+        return X
+
+class ConcentricCirclesMixture(DataModel):
+    "This seems unecessarily complicated"
     def __init__(self, p, amplitude, random_state=2022):
         super().__init__(p, amplitude, random_state=random_state)
         self.Z = np.random.uniform(low=-3, high=3, size=(p,p))
@@ -80,7 +94,6 @@ class BinomialModel(DataModel):
             def foo(offset):
                 Y = sample_Y(X, offset)
                 return np.mean(Y) - (1.0-purity)
-
             offset = optimize.bisect(foo, -1000, 1000)
             return offset
  
