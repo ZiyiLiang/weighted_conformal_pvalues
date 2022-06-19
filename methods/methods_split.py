@@ -4,16 +4,18 @@ import sys
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from statsmodels.stats.weightstats import ztest as ztest
+from statsmodels.stats.weightstats import ttest_ind as ttest
+import warnings
 import pdb
 
 sys.path.append('../third_party')
 
 class WeightedOneClassConformal:
-    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_two=None, calib_size=0.5, random_state=2022, tuning=True, verbose=True, progress=True):
+    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_two=None, calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         self.tuning = True
         self.verbose = verbose
         self.progress = progress
+        self.ratio = ratio
 
         if (bboxes_one is None) and (bboxes_two is None):
             print("Error: must provide at least one algorithm!")
@@ -116,14 +118,18 @@ class WeightedOneClassConformal:
                     scores[b] = -scores[b]
                     scores_out[b] = -scores_out[b]
 
-            score_contrast[b] = ztest(scores[b], scores_out[b], value=0)[0]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                score_contrast[b] = ttest(scores[b], scores_out[b], value=0)[0]
 
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             scores_out[b_tot] = self.scores_out_calib_two[b]
             # Concatenate conformity scores for inlier calibration data and test point
             scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
-            score_contrast_new = ztest(scores[b_tot], scores_out[b_tot], value=0)[0]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                score_contrast_new = ttest(scores[b_tot], scores_out[b_tot], value=0)[0]
             if np.isnan(score_contrast_new):
                 score_contrast_new = -np.inf
             score_contrast[b_tot] = score_contrast_new
@@ -162,14 +168,18 @@ class WeightedOneClassConformal:
                     scores[b] = -scores[b]
                     scores_cal[b] = -scores_cal[b]
 
-            score_contrast[b] = ztest(scores_cal[b], scores[b], value=0)[0]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                score_contrast[b] = ttest(scores_cal[b], scores[b], value=0)[0]
 
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             scores_cal[b_tot] = self.scores_out_calib_two[b]
             # Concatenate conformity scores for inlier calibration data and test point
             scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
-            score_contrast_new = ztest(scores_cal[b_tot], scores[b_tot], value=0)[0]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                score_contrast_new = ttest(scores_cal[b_tot], scores[b_tot], value=0)[0]
             if np.isnan(score_contrast_new):
                 score_contrast_new = -np.inf
             score_contrast[b_tot] = score_contrast_new
@@ -202,8 +212,11 @@ class WeightedOneClassConformal:
 
         def compute_pvalue(score_in_test, score_out_test):
             pvals_0 = self._calibrate_in(score_in_test)
-            pvals_1 = self._calibrate_out(score_out_test)
-            scores = pvals_0 / pvals_1
+            if self.ratio:
+                pvals_1 = self._calibrate_out(score_out_test)
+                scores = pvals_0 / pvals_1
+            else:
+                scores = pvals_0
             # Compute final conformal p-value
             n_cal = len(scores) - 1
             scores_mat = np.tile(scores, (len(scores),1))

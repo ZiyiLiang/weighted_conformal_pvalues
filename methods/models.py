@@ -18,7 +18,7 @@ class DataModel:
     def _sample_outlier(self, n):
         return None
 
-    def sample(self, n, purity=1, random_state=2022):
+    def sample(self, n, purity, random_state=2022):
         p = self.p
         np.random.seed(random_state)
         purity = np.clip(purity, 0, 1)
