@@ -19,7 +19,7 @@ import os, sys
 sys.path.append("../methods")
 
 from models import GaussianMixture, ConcentricCircles, BinomialModel
-from methods_split import BinaryConformal, OneClassConformal
+from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassConformal
 
 #########################
 # Experiment parameters #
@@ -47,16 +47,17 @@ else: # Default parameters
     data_name = "circles"
     n = 1000
     p = 100
-    a = 0.9
-    purity = 0.8
-    random_state = 1
+    a = 0.7
+    purity = 0.7
+    random_state = 2022
 
 
 # Fixed experiment parameters
 n_test = 1000
 purity_test = 0.5
 calib_size = 0.5
-alpha_list = [0.05, 0.1]
+alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
+num_repetitions = 2
 
 # Define list of possible two-class classifiers with desired hyper-parameters
 binary_classifiers = {
@@ -81,7 +82,8 @@ oneclass_classifiers = {
 # Output file #
 ###############
 outfile_prefix = "results/setup" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_purity" + str(purity) + "_seed" + str(random_state)
-print("Output file: {:s}.".format(outfile_prefix), end="\n")
+outfile = outfile_prefix + ".txt"
+print("Output file: {:s}".format(outfile), end="\n")
 
 # Header for results file
 def add_header(df):
@@ -99,25 +101,25 @@ def add_header(df):
 #########################
 
 class DataSet:
-    def __init__(self, data_name):
+    def __init__(self, data_name, random_state=None):
         if data_name=="circles":
-            self.model = ConcentricCircles(p, a)
+            self.model = ConcentricCircles(p, a, random_state=random_state)
         elif data_name=="binomial":
-            self.model = BinomialModel(p, a)
+            self.model = BinomialModel(p, a, random_state=random_state)
         else:
             print("Error: unknown model name!")
             exit(0)
 
-    def sample(self, n, purity, random_state=2022):
-        return self.model.sample(n, purity, random_state=random_state)
+    def sample(self, n, purity):
+        return self.model.sample(n, purity)
 
-dataset = DataSet(data_name)
+dataset = DataSet(data_name, random_state=random_state)
 
 ###################
 # Run experiments #
 ###################
 
-def apply_BH(pvals, alpha, Y):
+def filter_BH(pvals, alpha, Y):
     is_nonnull = (Y==1)
     reject, pvals_adj, _, _ = multipletests(pvals, alpha, method="fdr_bh")
     rejections = np.sum(reject)
@@ -126,21 +128,49 @@ def apply_BH(pvals, alpha, Y):
         power = np.sum(is_nonnull[np.where(reject)[0]]) / np.sum(is_nonnull)
     else:
         fdp = 0
-        power = 0
-        
+        power = 0        
     return fdp, power
 
+def filter_fixed(pvals, alpha, Y):
+    is_nonnull = (Y==1)
+    reject = np.where(pvals<=alpha)[0]
+    rejections = np.sum(reject)
+    if rejections>0:
+        if np.sum(Y==0)>0:
+            fpr = np.mean(reject[np.where(Y==0)[0]])
+        else:
+            fpr = 0        
+        if np.sum(Y==1)>0:
+            tpr = np.mean(reject[np.where(Y==1)[0]])
+        else:
+            tpr = 0
+    else:
+        fpr = 0        
+        tpr = 0
+    return fpr, tpr
+
 def eval_pvalues(pvals, Y):
+    # Evaluate with BH
     fdp_list = -np.ones((len(alpha_list),1))
     power_list = -np.ones((len(alpha_list),1))
     for alpha_idx in range(len(alpha_list)):
         alpha = alpha_list[alpha_idx]
-        fdp_list[alpha_idx], power_list[alpha_idx] = apply_BH(pvals, alpha, Y)
-    new_results = pd.DataFrame({})
-    new_results["Alpha"] = alpha_list
-    new_results["FDP"] = fdp_list
-    new_results["Power"] = power_list
-    return new_results
+        fdp_list[alpha_idx], power_list[alpha_idx] = filter_BH(pvals, alpha, Y)
+    results_tmp = pd.DataFrame({})
+    results_tmp["BH-Alpha"] = alpha_list
+    results_tmp["BH-FDP"] = fdp_list
+    results_tmp["BH-Power"] = power_list
+    # Evaluate with fixed threshold
+    fpr_list = -np.ones((len(alpha_list),1))
+    tpr_list = -np.ones((len(alpha_list),1))
+    for alpha_idx in range(len(alpha_list)):
+        alpha = alpha_list[alpha_idx]        
+        fpr_list[alpha_idx], tpr_list[alpha_idx] = filter_BH(pvals, alpha, Y)
+    results_tmp = pd.DataFrame({})
+    results_tmp["Fixed-Alpha"] = alpha_list
+    results_tmp["Fixed-FPR"] = fpr_list
+    results_tmp["Fixed-TPR"] = tpr_list
+    return results_tmp
 
     
 def run_experiment(random_state):
@@ -154,44 +184,90 @@ def run_experiment(random_state):
     # Initialize result data frame
     results = pd.DataFrame({})
 
-    # Compute conformal p-values via binary classification
+    # Conformal p-values via binary classification
     print("Running {:d} binary classifiers...".format(len(binary_classifiers)))
     sys.stdout.flush()
     for bc_name in tqdm(binary_classifiers.keys()):
         bc = binary_classifiers[bc_name]
         method = BinaryConformal(X_in, X_out, bc, calib_size=calib_size, verbose=False)
         pvals_test = method.compute_pvalues(X_test)
-        new_results = eval_pvalues(pvals_test, Y_test)
-        new_results["Method"] = "Binary"
-        new_results["Model"] = bc_name
-        results = pd.concat([results, new_results])
+        results_tmp = eval_pvalues(pvals_test, Y_test)
+        results_tmp["Method"] = "Binary"
+        results_tmp["Model"] = bc_name
+        results = pd.concat([results, results_tmp])
 
-    # Compute conformal p-values via one-class classification
-    print("Running {:d} one-class classifiers...".format(len(binary_classifiers)))
+    # Conformal p-values via one-class classification
+    print("Running {:d} one-class classifiers...".format(len(oneclass_classifiers)))
     sys.stdout.flush()
     for occ_name in tqdm(oneclass_classifiers.keys()):
         occ = oneclass_classifiers[occ_name]
-        method = OneClassConformal(X_in, occ, calib_size=calib_size)
+        method = OneClassConformal(X_in, occ, calib_size=calib_size, verbose=False)
         pvals_test = method.compute_pvalues(X_test)
-        new_results = eval_pvalues(pvals_test, Y_test)
-        new_results["Method"] = "One-class"
-        new_results["Model"] = occ_name
-        results = pd.concat([results, new_results])   
+        results_tmp = eval_pvalues(pvals_test, Y_test)
+        results_tmp["Method"] = "One-Class"
+        results_tmp["Model"] = occ_name
+        results = pd.concat([results, results_tmp])   
+
+    ## Conformal p-values via weighted one-class classification
+    print("Running {:d} weighted one-class classifiers...".format(len(oneclass_classifiers)))
+    sys.stdout.flush()
+    for occ_name in tqdm(oneclass_classifiers.keys()):
+        occ = oneclass_classifiers[occ_name]
+        method = WeightedOneClassConformal(X_in, X_out, bboxes_one=[occ], calib_size=calib_size, tuning=True, progress=False, verbose=False)
+        pvals_test = method.compute_pvalues(X_test)
+        results_tmp = eval_pvalues(pvals_test, Y_test)
+        results_tmp["Method"] = "Weighted One-Class"
+        results_tmp["Model"] = occ_name
+        results = pd.concat([results, results_tmp])   
+
+    ## Conformal p-values via weighted one-class classification and learning ensemble
+    print("Running weighted one-class classifier with learning ensemble...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = WeightedOneClassConformal(X_in, X_out, 
+                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+                                       calib_size=calib_size, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test)
+    results_tmp["Method"] = "Ensemble (weighted)"
+    results_tmp["Model"] = "Ensemble"
+    results = pd.concat([results, results_tmp])   
+        
+    ## Conformal p-values via learning ensemble (no weighting)
+    print("Running weighted one-class classifier with learning ensemble (without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = WeightedOneClassConformal(X_in, X_out, 
+                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test)
+    results_tmp["Method"] = "Ensemble"
+    results_tmp["Model"] = "Ensemble"
+    results = pd.concat([results, results_tmp])   
 
     # Continue from here
 
     return results
 
-results = run_experiment(random_state)
-results = add_header(results)
+# Initialize result data frame
+results = pd.DataFrame({})
 
-pdb.set_trace()
-
-################
-# Save results #
-################
-if False:
-    outfile = outfile_prefix + ".txt"
-    res.to_csv(outfile, index=False)
+for r in range(num_repetitions):
+    print("\nStarting repetition {:d} of {:d}:\n".format(r+1, num_repetitions))
+    sys.stdout.flush()
+    # Change random seed for this repetition
+    random_state_new = 10*num_repetitions*random_state + r
+    # Run experiment and collect results
+    results_new = run_experiment(random_state_new)
+    results_new = add_header(results_new)
+    results_new["Repetition"] = r
+    results = pd.concat([results, results_new])   
+    # Save results
+    results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))
     sys.stdout.flush()
+    
+pdb.set_trace()

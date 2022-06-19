@@ -7,8 +7,9 @@ import scipy.special as sp
 import pdb
 
 class DataModel:
-    def __init__(self, p, amplitude, random_state=2022):
-        np.random.seed(random_state)
+    def __init__(self, p, amplitude, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)
         self.p = p
         self.a = amplitude
 
@@ -18,9 +19,10 @@ class DataModel:
     def _sample_outlier(self, n):
         return None
 
-    def sample(self, n, purity, random_state=2022):
+    def sample(self, n, purity, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)
         p = self.p
-        np.random.seed(random_state)
         purity = np.clip(purity, 0, 1)
         n_clean = np.round(n * purity).astype(int)
         n_outlier = n - n_clean
@@ -63,7 +65,7 @@ class ConcentricCircles(DataModel):
 
 class ConcentricCirclesMixture(DataModel):
     "This seems unecessarily complicated"
-    def __init__(self, p, amplitude, random_state=2022):
+    def __init__(self, p, amplitude, random_state=None):
         super().__init__(p, amplitude, random_state=random_state)
         self.Z = np.random.uniform(low=-3, high=3, size=(p,p))
 
@@ -83,11 +85,11 @@ class ConcentricCirclesMixture(DataModel):
 
 
 class BinomialModel(DataModel):
-    def __init__(self, p, amplitude, random_state=2022):
+    def __init__(self, p, amplitude, random_state=None):
         super().__init__(p, amplitude, random_state=random_state)
         self.beta_Z = np.sqrt(amplitude)*np.random.normal(size=(p,2))
 
-    def sample(self, n, purity=1, random_state=2022):
+    def sample(self, n, purity=1, random_state=None):
 
         def calculate_offset(purity):
             X = sample_X(1000)
@@ -96,7 +98,7 @@ class BinomialModel(DataModel):
                 return np.mean(Y) - (1.0-purity)
             offset = optimize.bisect(foo, -1000, 1000)
             return offset
- 
+
         def sample_X(n):
             X = np.random.normal(0, 1, (n,self.p))
             X[:,0] = np.random.uniform(low=0, high=1, size=(n,))
