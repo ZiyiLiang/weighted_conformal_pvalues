@@ -4,7 +4,8 @@ import sys
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from statsmodels.stats.weightstats import ttest_ind as ttest
+#from statsmodels.stats.weightstats import ttest_ind as ttest
+from scipy.stats import ranksums
 import warnings
 import pdb
 
@@ -120,7 +121,8 @@ class WeightedOneClassConformal:
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                score_contrast[b] = ttest(scores[b], scores_out[b], value=0)[0]
+                #score_contrast[b] = ttest(scores[b], scores_out[b], value=0)[0]
+                score_contrast[b] = ranksums(scores[b], scores_out[b])[0]
 
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
@@ -129,7 +131,8 @@ class WeightedOneClassConformal:
             scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                score_contrast_new = ttest(scores[b_tot], scores_out[b_tot], value=0)[0]
+                #score_contrast_new = ttest(scores[b_tot], scores_out[b_tot], value=0)[0]
+                score_contrast_new = ranksums(scores[b_tot], scores_out[b_tot])[0]
             if np.isnan(score_contrast_new):
                 score_contrast_new = -np.inf
             score_contrast[b_tot] = score_contrast_new
@@ -137,6 +140,9 @@ class WeightedOneClassConformal:
         # Pick the best model
         b_star = np.argmax(score_contrast)
         scores_star = scores[b_star]
+        # if len(scores)>1:
+        #     print("Best model: {:d}".format(b_star))
+        #     pdb.set_trace()
 
         # Compute conformal p-values using the scores from the best model
         n_cal = len(scores_star) - 1
@@ -170,7 +176,8 @@ class WeightedOneClassConformal:
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                score_contrast[b] = ttest(scores_cal[b], scores[b], value=0)[0]
+                #score_contrast[b] = ttest(scores_cal[b], scores[b], value=0)[0]
+                score_contrast[b] = ranksums(scores_cal[b], scores[b])[0]
 
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
@@ -179,7 +186,8 @@ class WeightedOneClassConformal:
             scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                score_contrast_new = ttest(scores_cal[b_tot], scores[b_tot], value=0)[0]
+                #score_contrast_new = ttest(scores_cal[b_tot], scores[b_tot], value=0)[0]
+                score_contrast_new = ranksums(scores_cal[b_tot], scores[b_tot])[0]
             if np.isnan(score_contrast_new):
                 score_contrast_new = -np.inf
             score_contrast[b_tot] = score_contrast_new

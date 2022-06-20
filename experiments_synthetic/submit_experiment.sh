@@ -5,7 +5,7 @@ SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles")
-  N_LIST=(100 200 500 1000 2000 5000 10000)
+  N_LIST=(100 200 500 1000 2000 5000)
   P_LIST=(100)
   A_LIST=0.7
   PURITY_LIST=(0.9)
