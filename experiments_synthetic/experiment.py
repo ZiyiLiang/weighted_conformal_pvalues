@@ -59,21 +59,21 @@ calib_size = 0.5
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 2
 
+# List of possible one-class classifiers with desired hyper-parameters
+oneclass_classifiers = {
+    'IF': IsolationForest(random_state=random_state),
+    'SVM': OneClassSVM(),
+    'LOF': LocalOutlierFactor(novelty=True)
+}
+
 # Define list of possible two-class classifiers with desired hyper-parameters
 binary_classifiers = {
-    'RF': RandomForestClassifier(max_depth=2, random_state=random_state),
-    'KNN': KNeighborsClassifier(n_neighbors=3),
-    'SVC': SVC(kernel="linear", C=0.025, probability=True),
+    'RF': RandomForestClassifier(random_state=random_state),
+    'KNN': KNeighborsClassifier(),
+    'SVC': SVC(probability=True),
     'NB' : GaussianNB(),
     'QDA': QuadraticDiscriminantAnalysis(),
     'MLP': MLPClassifier(max_iter=500, random_state=random_state)
-}
-
-# List of possible one-class classifiers with desired hyper-parameters
-oneclass_classifiers = {
-    'IF': IsolationForest(contamination=0.1,random_state=random_state),
-    'SVM': OneClassSVM(nu=0.1, kernel="rbf"),
-    'LOF': LocalOutlierFactor(contamination=0.1, novelty=True)
 }
 
 
@@ -265,6 +265,9 @@ for r in range(num_repetitions):
     results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))
     sys.stdout.flush()
-    
+
+    pdb.set_trace()
+
 print("\nAll experiments completed.\n")
 sys.stdout.flush()
+
