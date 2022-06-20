@@ -1,22 +1,15 @@
 #!/bin/bash
 
-# NGGP special cases
-# sigma = 0, tau = 1 -> DP(alpha)
-# tau = 0 -> SP(sigma)
-
-
 # Parameters
 SETUP="1"
 
-
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles")
-  N_LIST=(1000)
+  N_LIST=(100 200 500 1000 2000 5000 10000)
   P_LIST=(100)
   A_LIST=0.7
   PURITY_LIST=(0.9)
-  SEED_LIST=$(seq 1 1)
-
+  SEED_LIST=$(seq 1 20)
 
 fi
 
@@ -45,11 +38,11 @@ for SEED in $SEED_LIST; do
       for P in "${P_LIST[@]}"; do
         for A in "${A_LIST[@]}"; do
           for PURITY in "${PURITY_LIST[@]}"; do
-            
+
             JOBN="setup"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_purity"$PURITY"_seed"$SEED
             OUT_FILE=$OUT_DIR"/"$JOBN".txt"
             COMPLETE=0
-            ls $OUT_FILE
+            #ls $OUT_FILE
             if [[ -f $OUT_FILE ]]; then
               COMPLETE=1
             fi
@@ -65,7 +58,7 @@ for SEED in $SEED_LIST; do
               # Print order
               echo $ORD
               # Submit order
-              #$ORD
+              $ORD
               # Run command now
               #./$SCRIPT
             fi

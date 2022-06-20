@@ -71,7 +71,7 @@ binary_classifiers = {
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
-    'IF':IsolationForest(contamination=0.1,random_state=random_state),
+    'IF': IsolationForest(contamination=0.1,random_state=random_state),
     'SVM': OneClassSVM(nu=0.1, kernel="rbf"),
     'LOF': LocalOutlierFactor(contamination=0.1, novelty=True)
 }
@@ -111,8 +111,6 @@ class DataSet:
 
     def sample(self, n, purity):
         return self.model.sample(n, purity)
-
-dataset = DataSet(data_name, random_state=random_state)
 
 ###################
 # Run experiments #
@@ -156,7 +154,7 @@ def eval_pvalues(pvals, Y):
         alpha = alpha_list[alpha_idx]
         fdp_list[alpha_idx], power_list[alpha_idx] = filter_BH(pvals, alpha, Y)
     results_tmp = pd.DataFrame({})
-    results_tmp["BH-Alpha"] = alpha_list
+    results_tmp["Alpha"] = alpha_list
     results_tmp["BH-FDP"] = fdp_list
     results_tmp["BH-Power"] = power_list
     # Evaluate with fixed threshold
@@ -165,14 +163,12 @@ def eval_pvalues(pvals, Y):
     for alpha_idx in range(len(alpha_list)):
         alpha = alpha_list[alpha_idx]        
         fpr_list[alpha_idx], tpr_list[alpha_idx] = filter_BH(pvals, alpha, Y)
-    results_tmp = pd.DataFrame({})
-    results_tmp["Fixed-Alpha"] = alpha_list
     results_tmp["Fixed-FPR"] = fpr_list
     results_tmp["Fixed-TPR"] = tpr_list
     return results_tmp
 
     
-def run_experiment(random_state):
+def run_experiment(dataset, random_state):
     # Sample the training/calibration data
     X, Y = dataset.sample(n, purity)
     X_in = X[Y==0]
@@ -259,8 +255,9 @@ for r in range(num_repetitions):
     sys.stdout.flush()
     # Change random seed for this repetition
     random_state_new = 10*num_repetitions*random_state + r
+    dataset = DataSet(data_name, random_state=random_state_new)
     # Run experiment and collect results
-    results_new = run_experiment(random_state_new)
+    results_new = run_experiment(dataset, random_state_new)
     results_new = add_header(results_new)
     results_new["Repetition"] = r
     results = pd.concat([results, results_new])   
