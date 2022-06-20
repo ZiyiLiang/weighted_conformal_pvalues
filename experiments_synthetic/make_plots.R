@@ -14,7 +14,7 @@ plot.fdr <- TRUE
 
 if(plot.fdr) {
     results <- results.raw %>%
-        mutate(TypeI=`BH-FDP`, Power=`BH-Power`)
+        mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
 } else {
     results <- results.raw %>%
         mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
@@ -49,14 +49,15 @@ results.fdr.se <- df %>%
 results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se)
 
 
-results.fdr %>%    
-    filter(Purity==0.8, Alpha==alpha.nominal) %>%
+results.fdr %>%
+    filter(Metric=="Power") %>%
+    filter(Alpha==alpha.nominal) %>%
     ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
     geom_point(alpha=0.75) +
     geom_line(alpha=0.75) +
     geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
     geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-    facet_grid(Signal~Metric) +
+    facet_grid(Signal~Purity) +
     scale_x_log10() +
     xlab("Sample size") +
     ylab("") +

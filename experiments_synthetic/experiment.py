@@ -25,7 +25,7 @@ from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassCo
 # Experiment parameters #
 #########################
 
-if True: # Input parameters
+if False: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -47,8 +47,8 @@ else: # Default parameters
     data_name = "circles"
     n = 1000
     p = 100
-    a = 0.7
-    purity = 0.7
+    a = 0.9
+    purity = 0.8
     random_state = 2022
 
 
@@ -134,7 +134,7 @@ def filter_StoreyBH(pvals, alpha, Y, lamb=0.25):
 
 def filter_fixed(pvals, alpha, Y):
     is_nonnull = (Y==1)
-    reject = np.where(pvals<=alpha)[0]
+    reject = (pvals<=alpha)
     rejections = np.sum(reject)
     if rejections>0:
         if np.sum(Y==0)>0:
@@ -171,7 +171,7 @@ def eval_pvalues(pvals, Y):
     tpr_list = -np.ones((len(alpha_list),1))
     for alpha_idx in range(len(alpha_list)):
         alpha = alpha_list[alpha_idx]        
-        fpr_list[alpha_idx], tpr_list[alpha_idx] = filter_BH(pvals, alpha, Y)
+        fpr_list[alpha_idx], tpr_list[alpha_idx] = filter_fixed(pvals, alpha, Y)
     results_tmp["Fixed-FPR"] = fpr_list
     results_tmp["Fixed-TPR"] = tpr_list
     return results_tmp
@@ -274,8 +274,6 @@ for r in range(num_repetitions):
     results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))
     sys.stdout.flush()
-
-    pdb.set_trace()
 
 print("\nAll experiments completed.\n")
 sys.stdout.flush()
