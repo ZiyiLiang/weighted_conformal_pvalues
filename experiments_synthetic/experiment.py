@@ -128,6 +128,10 @@ def filter_BH(pvals, alpha, Y):
         power = 0        
     return fdp, power
 
+def filter_StoreyBH(pvals, alpha, Y, lamb=0.25):
+    pi = (1.0 + np.sum(pvals>lamb)) / (len(pvals)*(1.0 - lamb))
+    return filter_BH(pvals, alpha/pi, Y)
+
 def filter_fixed(pvals, alpha, Y):
     is_nonnull = (Y==1)
     reject = np.where(pvals<=alpha)[0]
@@ -147,16 +151,21 @@ def filter_fixed(pvals, alpha, Y):
     return fpr, tpr
 
 def eval_pvalues(pvals, Y):
-    # Evaluate with BH
+    # Evaluate with BH and Storey-BH
     fdp_list = -np.ones((len(alpha_list),1))
     power_list = -np.ones((len(alpha_list),1))
+    fdp_storey_list = -np.ones((len(alpha_list),1))
+    power_storey_list = -np.ones((len(alpha_list),1))
     for alpha_idx in range(len(alpha_list)):
         alpha = alpha_list[alpha_idx]
         fdp_list[alpha_idx], power_list[alpha_idx] = filter_BH(pvals, alpha, Y)
+        fdp_storey_list[alpha_idx], power_storey_list[alpha_idx] = filter_StoreyBH(pvals, alpha, Y)
     results_tmp = pd.DataFrame({})
     results_tmp["Alpha"] = alpha_list
     results_tmp["BH-FDP"] = fdp_list
     results_tmp["BH-Power"] = power_list
+    results_tmp["Storey-BH-FDP"] = fdp_storey_list
+    results_tmp["Storey-BH-Power"] = power_storey_list
     # Evaluate with fixed threshold
     fpr_list = -np.ones((len(alpha_list),1))
     tpr_list = -np.ones((len(alpha_list),1))

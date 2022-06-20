@@ -5,21 +5,22 @@ SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles")
-  N_LIST=(100 200 500 1000 2000 5000)
+  N_LIST=(50 100 200 500 1000 2000 5000)
   P_LIST=(100)
-  A_LIST=0.7
-  PURITY_LIST=(0.9)
-  SEED_LIST=$(seq 1 20)
+  A_LIST=(0.7 0.8 0.9 1.5)
+  PURITY_LIST=(0.8 0.9)
+  SEED_LIST=$(seq 1 10)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-00:05:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
 ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
+#ORDP="sbatch --account=sesia_658 --partition=sesia,shared --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
 
 # Create directory for log files
 LOGS="logs"
