@@ -25,7 +25,7 @@ from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassCo
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -75,7 +75,6 @@ oneclass_classifiers = {
     'SVM': OneClassSVM(nu=0.1, kernel="rbf"),
     'LOF': LocalOutlierFactor(contamination=0.1, novelty=True)
 }
-
 
 
 ###############
@@ -270,4 +269,5 @@ for r in range(num_repetitions):
     print("\nResults written to {:s}\n".format(outfile))
     sys.stdout.flush()
     
-pdb.set_trace()
+print("\nAll experiments completed.\n")
+sys.stdout.flush()
