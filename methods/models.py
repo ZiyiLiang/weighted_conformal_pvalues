@@ -103,11 +103,11 @@ class BinomialModel(DataModel):
     def __init__(self, p, amplitude, random_state=None):
         super().__init__(p, amplitude, random_state=random_state)
         self.beta_Z = np.sqrt(amplitude)*np.random.normal(size=(p,2))
-
+        
     def sample(self, n, purity=1, random_state=None):
 
         def calculate_offset(purity):
-            X = sample_X(1000)
+            X = sample_X(10000)
             def foo(offset):
                 Y = sample_Y(X, offset)
                 return np.mean(Y) - (1.0-purity)
@@ -139,7 +139,7 @@ class BinomialModel(DataModel):
             y = np.array([np.dot(g[i],classes_id) for i in range(X.shape[0])], dtype = int)
             return y
 
-        offset = 0 #calculate_offset(purity)
+        offset = calculate_offset(purity)
         X = sample_X(n)
         is_outlier = sample_Y(X, offset)
         return X, is_outlier.astype(int)

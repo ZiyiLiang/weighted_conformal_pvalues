@@ -130,8 +130,11 @@ def filter_BH(pvals, alpha, Y):
         power = 0        
     return fdp, power
 
-def filter_StoreyBH(pvals, alpha, Y, lamb=0.25):
-    pi = (1.0 + np.sum(pvals>lamb)) / (len(pvals)*(1.0 - lamb))
+def filter_StoreyBH(pvals, alpha, Y, lamb=0.5):
+    n = len(pvals)x
+    R = np.sum(pvals<=lamb)
+    pi = (1+n-R) / (n*(1.0 - lamb))
+    pvals[pvals>lamb] = 1
     return filter_BH(pvals, alpha/pi, Y)
 
 def filter_fixed(pvals, alpha, Y):
