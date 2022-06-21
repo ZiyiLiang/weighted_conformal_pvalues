@@ -225,7 +225,7 @@ def run_experiment(dataset, random_state):
         results = pd.concat([results, results_tmp])   
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
-    print("Running weighted one-class classifier with learning ensemble...")
+    print("Running weighted classifiers with learning ensemble...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
@@ -234,12 +234,12 @@ def run_experiment(dataset, random_state):
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
     results_tmp = eval_pvalues(pvals_test, Y_test)
-    results_tmp["Method"] = "Ensemble (weighted)"
+    results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
     results = pd.concat([results, results_tmp])   
         
     ## Conformal p-values via learning ensemble (no weighting)
-    print("Running weighted one-class classifier with learning ensemble (without weighting)...")
+    print("Running weighted classifiers with learning ensemble (without weighting)...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
@@ -248,7 +248,35 @@ def run_experiment(dataset, random_state):
                                        calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
     results_tmp = eval_pvalues(pvals_test, Y_test)
-    results_tmp["Method"] = "Ensemble"
+    results_tmp["Method"] = "Ensemble (mixed, unweighted)"
+    results_tmp["Model"] = "Ensemble"
+    results = pd.concat([results, results_tmp])   
+
+    ## Conformal p-values via learning ensemble (one-class, no weighting)
+    print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = WeightedOneClassConformal(X_in, X_out, 
+                                       bboxes_one=bboxes_one,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test)
+    results_tmp["Method"] = "Ensemble (one-class, unweighted)"
+    results_tmp["Model"] = "Ensemble"
+    results = pd.concat([results, results_tmp])   
+
+    ## Conformal p-values via binary ensemble (no weighting)
+    print("Running binary classifiers with learning ensemble (without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = WeightedOneClassConformal(X_in, X_out, 
+                                       bboxes_two=bboxes_two,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test)
+    results_tmp["Method"] = "Ensemble (binary, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results = pd.concat([results, results_tmp])   
 

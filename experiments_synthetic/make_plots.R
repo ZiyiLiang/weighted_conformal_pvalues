@@ -50,8 +50,7 @@ results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se)
 
 
 results.fdr %>%
-    filter(Metric=="Power") %>%
-    filter(Alpha==alpha.nominal) %>%
+    filter(p==1000, Metric=="Power", Alpha==alpha.nominal) %>%
     ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
     geom_point(alpha=0.75) +
     geom_line(alpha=0.75) +
