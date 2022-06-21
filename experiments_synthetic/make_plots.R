@@ -36,7 +36,7 @@ results.fdr.oracle <- results %>%
     select(-idx.oracle)
 
 df <- results.fdr.models %>%
-    filter(Method %in% c("Ensemble", "Ensemble (weighted)")) %>%
+    filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
     rbind(results.fdr.oracle)
 results.fdr.mean <- df %>%
     gather(Power, TypeI, key="Metric", value="Mean") %>%
@@ -50,13 +50,14 @@ results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se)
 
 
 results.fdr %>%
-    filter(p==1000, Metric=="Power", Alpha==alpha.nominal) %>%
+    filter(Data=="circles-mixed", p==1000, Alpha==alpha.nominal) %>%
+#    filter(Metric=="Power") %>%
     ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
     geom_point(alpha=0.75) +
     geom_line(alpha=0.75) +
     geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
     geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-    facet_grid(Signal~Purity) +
+    facet_grid(Metric~Purity) +
     scale_x_log10() +
     xlab("Sample size") +
     ylab("") +

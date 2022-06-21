@@ -72,8 +72,14 @@ class WeightedOneClassConformal:
         self.scores_out_calib_two = np.zeros((self.num_boxes_two,X_out_calib.shape[0]))
         for b in range(self.num_boxes_two):
             # Scores for inlier calibration data using inlier one-class model
-            self.scores_in_calib_two[b] = self.bboxes_two[b].predict_proba(X_in_calib)[:,0]
-            self.scores_out_calib_two[b] = self.bboxes_two[b].predict_proba(X_out_calib)[:,0]
+            try:
+                self.scores_in_calib_two[b] = self.bboxes_two[b].predict_proba(X_in_calib)[:,0]
+            except:
+                self.scores_in_calib_two[b] = np.ones((X_in_calib.shape[0],))
+            try:
+                self.scores_out_calib_two[b] = self.bboxes_two[b].predict_proba(X_out_calib)[:,0]
+            except:
+                self.scores_out_calib_two[b] = np.ones((X_out_calib.shape[0],))
 
     def _train_one(self, bbox, X_train):
         # Fit the black-box one-class classification model on the training data
@@ -211,8 +217,14 @@ class WeightedOneClassConformal:
             scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
-            scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
-            scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+            try:
+                scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+            except:
+                scores_in_test[:,b_tot] = 1
+            try:
+                scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+            except:
+                scores_out_test[:,b_tot] = 1
 
         def compute_pvalue(score_in_test, score_out_test):
             pvals_0 = self._calibrate_in(score_in_test)
@@ -327,7 +339,10 @@ class BinaryConformal:
         if self.verbose:
             print("Calculating conformity scores for {:d} hold-out inliers... ".format(X_in_calib.shape[0]), end="")
             sys.stdout.flush()
-        self.scores_cal = self.bbox.predict_proba(X_in_calib)[:,0]
+        try:
+            self.scores_cal = self.bbox.predict_proba(X_in_calib)[:,0]
+        except:
+            self.scores_cal = np.ones((X_in_calib.shape[0],))
         if self.verbose:
             print("done.")
             sys.stdout.flush()
@@ -339,7 +354,10 @@ class BinaryConformal:
         if self.verbose:
             print("Calculating conformity scores for {:d} test points... ".format(n_test), end="")
             sys.stdout.flush()
-        scores_test = self.bbox.predict_proba(X_test)[:,0]
+        try:
+            scores_test = self.bbox.predict_proba(X_test)[:,0]
+        except:
+            scores_test = np.ones((X_test.shape[0],))
         if self.verbose:
             print("done.")
             sys.stdout.flush()
