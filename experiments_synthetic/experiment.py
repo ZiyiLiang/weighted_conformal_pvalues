@@ -134,6 +134,7 @@ def filter_StoreyBH(pvals, alpha, Y, lamb=0.5):
     n = len(pvals)
     R = np.sum(pvals<=lamb)
     pi = (1+n-R) / (n*(1.0 - lamb))
+    print(pi)
     pvals[pvals>lamb] = 1
     return filter_BH(pvals, alpha/pi, Y)
 

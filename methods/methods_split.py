@@ -12,14 +12,9 @@ sys.path.append('../third_party')
 
 # Compute conformal p-values
 def conformalize_scores(scores_cal, scores_test, offset=1):
-    # Break ties at random
-    scores_m2 = np.sqrt(np.mean(np.power(scores_cal,2)))
-    eps_cal = np.random.normal(loc=0, scale=scores_m2/1e6, size=(len(scores_cal),))
-    scores_cal = scores_cal + eps_cal
-    eps_test = np.random.normal(loc=0, scale=scores_m2/1e6, size=(len(scores_test),))
-    scores_test = scores_test + eps_test
+    assert((offset==0) or (offset==1))
     # Calculate conformal p-values
-    n_cal = len(scores_cal)
+    n_cal = len(scores_cal) - (1-offset)
     scores_mat = np.tile(scores_cal, (len(scores_test),1))
     tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
     pvals = (offset+tmp)/(1.0+n_cal)
