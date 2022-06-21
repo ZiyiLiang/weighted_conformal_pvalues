@@ -27,7 +27,12 @@ class WeightedOneClassConformal:
 
         # Split data into training and calibration subsets
         X_in_train, X_in_calib = train_test_split(X_in, test_size=calib_size, random_state=random_state)
-        X_out_train, X_out_calib = train_test_split(X_out, test_size=calib_size, random_state=random_state)
+        try:
+            X_out_train, X_out_calib = train_test_split(X_out, test_size=calib_size, random_state=random_state)
+        except:
+            X_out_train = np.zeros((1,X_in_train.shape[1]))
+            X_out_calib = np.zeros((1,X_in_train.shape[1]))
+
         n_in_train = X_in_train.shape[0]
         n_out_train = X_out_train.shape[0]
         X_train = np.concatenate([X_in_train, X_out_train],0)
@@ -59,13 +64,25 @@ class WeightedOneClassConformal:
         self.scores_inout_calib_one = np.zeros((self.num_boxes_one,X_out_calib.shape[0]))
         for b in range(self.num_boxes_one):
             # Scores for inlier calibration data using inlier one-class model
-            self.scores_in_calib_one[b] = self.bboxes_one_in[b].score_samples(X_in_calib)
+            try:
+                self.scores_in_calib_one[b] = self.bboxes_one_in[b].score_samples(X_in_calib)
+            except:
+                self.scores_in_calib_one[b] = np.ones((X_in_calib.shape[0],))
             # Scores for outlier calibration data using inlier model
-            self.scores_inout_calib_one[b] = self.bboxes_one_in[b].score_samples(X_out_calib)
+            try:
+                self.scores_inout_calib_one[b] = self.bboxes_one_in[b].score_samples(X_out_calib)
+            except:
+                self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
             # Scores for outlier calibration data using outlier model
-            self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
+            try:
+                self.scores_inout_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
+            except:
+                self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
             # Scores for inlier calibration data using outlier model
-            self.scores_outin_calib_one[b] = self.bboxes_one_out[b].score_samples(X_in_calib)
+            try:
+                self.scores_outin_calib_one[b] = self.bboxes_one_out[b].score_samples(X_in_calib)
+            except:
+                self.scores_outin_calib_one[b] = np.ones((X_in_calib.shape[0],))
 
         # Pre-compute conformity scores using two-class models
         self.scores_in_calib_two = np.zeros((self.num_boxes_two,X_in_calib.shape[0]))
@@ -86,7 +103,10 @@ class WeightedOneClassConformal:
         if self.verbose:
             print("Fitting a one-class classification model on {:d} data points... ".format(X_train.shape[0]), end="")
             sys.stdout.flush()
-        bbox.fit(X_train)
+        try:
+            bbox.fit(X_train)
+        except:
+            print("Warning: cannot train one-class classifier!")
         if self.verbose:
             print("done.")
             sys.stdout.flush()
@@ -96,7 +116,10 @@ class WeightedOneClassConformal:
         if self.verbose:
             print("Fitting a two-class classification model on {:d} data points... ".format(X_train.shape[0]), end="")
             sys.stdout.flush()
-        bbox.fit(X_train, Y_train)
+        try:
+            bbox.fit(X_train, Y_train)
+        except:
+            print("Warning: cannot train binary classifier!")
         if self.verbose:
             print("done.")
             sys.stdout.flush()
@@ -213,8 +236,14 @@ class WeightedOneClassConformal:
         scores_out_test = np.zeros((n_test,num_boxes))
         # Compute conformity scores for test data
         for b in range(self.num_boxes_one):
-            scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
-            scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
+            try:
+                scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
+            except:
+                scores_in_test[:,b] = 1
+            try:
+                scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
+            except:
+                scores_out_test[:,b] = 1
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             try:
@@ -330,7 +359,10 @@ class BinaryConformal:
             sys.stdout.flush()
         X_train = np.concatenate([X_in_train, X_out_train],0)
         Y_train = np.concatenate([[0]*n_in_train, [1]*n_out_train])
-        self.bbox.fit(X_train, Y_train)
+        try:
+            self.bbox.fit(X_train, Y_train)
+        except:
+            print("Warning: cannot train binary classifier!")
         if self.verbose:
             print("done.")
             sys.stdout.flush()

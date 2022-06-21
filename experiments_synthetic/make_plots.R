@@ -50,7 +50,7 @@ results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se)
 
 
 results.fdr %>%
-    filter(Data=="circles-mixed", p==1000, Alpha==alpha.nominal) %>%
+    filter(Data=="circles-mixed", n>10, p==1000, Alpha==alpha.nominal) %>%
 #    filter(Metric=="Power") %>%
     ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
     geom_point(alpha=0.75) +
