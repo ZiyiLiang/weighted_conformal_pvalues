@@ -131,7 +131,7 @@ def filter_BH(pvals, alpha, Y):
     return fdp, power
 
 def filter_StoreyBH(pvals, alpha, Y, lamb=0.5):
-    n = len(pvals)x
+    n = len(pvals)
     R = np.sum(pvals<=lamb)
     pi = (1+n-R) / (n*(1.0 - lamb))
     pvals[pvals>lamb] = 1
