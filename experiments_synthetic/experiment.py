@@ -129,7 +129,7 @@ def filter_BH(pvals, alpha, Y):
         power = np.sum(is_nonnull[np.where(reject)[0]]) / np.sum(is_nonnull)
     else:
         fdp = 0
-        power = 0        
+        power = 0
     return fdp, power
 
 def filter_StoreyBH(pvals, alpha, Y, lamb=0.5):
@@ -148,13 +148,13 @@ def filter_fixed(pvals, alpha, Y):
         if np.sum(Y==0)>0:
             fpr = np.mean(reject[np.where(Y==0)[0]])
         else:
-            fpr = 0        
+            fpr = 0
         if np.sum(Y==1)>0:
             tpr = np.mean(reject[np.where(Y==1)[0]])
         else:
             tpr = 0
     else:
-        fpr = 0        
+        fpr = 0
         tpr = 0
     return fpr, tpr
 
@@ -178,13 +178,13 @@ def eval_pvalues(pvals, Y):
     fpr_list = -np.ones((len(alpha_list),1))
     tpr_list = -np.ones((len(alpha_list),1))
     for alpha_idx in range(len(alpha_list)):
-        alpha = alpha_list[alpha_idx]        
+        alpha = alpha_list[alpha_idx]
         fpr_list[alpha_idx], tpr_list[alpha_idx] = filter_fixed(pvals, alpha, Y)
     results_tmp["Fixed-FPR"] = fpr_list
     results_tmp["Fixed-TPR"] = tpr_list
     return results_tmp
 
-    
+
 def run_experiment(dataset, random_state):
     # Sample the training/calibration data
     X, Y = dataset.sample(n, purity)
@@ -206,6 +206,8 @@ def run_experiment(dataset, random_state):
         results_tmp = eval_pvalues(pvals_test, Y_test)
         results_tmp["Method"] = "Binary"
         results_tmp["Model"] = bc_name
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
         results = pd.concat([results, results_tmp])
 
     # Conformal p-values via one-class classification
@@ -218,7 +220,9 @@ def run_experiment(dataset, random_state):
         results_tmp = eval_pvalues(pvals_test, Y_test)
         results_tmp["Method"] = "One-Class"
         results_tmp["Model"] = occ_name
-        results = pd.concat([results, results_tmp])   
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
+        results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification
     print("Running {:d} weighted one-class classifiers...".format(len(oneclass_classifiers)))
@@ -226,69 +230,77 @@ def run_experiment(dataset, random_state):
     for occ_name in tqdm(oneclass_classifiers.keys()):
         occ = oneclass_classifiers[occ_name]
         method = WeightedOneClassConformal(X_in, X_out, bboxes_one=[occ], calib_size=calib_size, tuning=True, progress=False, verbose=False)
-        pvals_test = method.compute_pvalues(X_test)
+        pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
         results_tmp = eval_pvalues(pvals_test, Y_test)
         results_tmp["Method"] = "Weighted One-Class"
         results_tmp["Model"] = occ_name
-        results = pd.concat([results, results_tmp])   
+        results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+        results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+        results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
     print("Running weighted classifiers with learning ensemble...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out, 
+    method = WeightedOneClassConformal(X_in, X_out,
                                        bboxes_one=bboxes_one, bboxes_two=bboxes_two,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
+    pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
-    results = pd.concat([results, results_tmp])   
-        
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    results = pd.concat([results, results_tmp])
+
     ## Conformal p-values via learning ensemble (no weighting)
     print("Running weighted classifiers with learning ensemble (without weighting)...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out, 
+    method = WeightedOneClassConformal(X_in, X_out,
                                        bboxes_one=bboxes_one, bboxes_two=bboxes_two,
                                        calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
     results_tmp = eval_pvalues(pvals_test, Y_test)
     results_tmp["Method"] = "Ensemble (mixed, unweighted)"
     results_tmp["Model"] = "Ensemble"
-    results = pd.concat([results, results_tmp])   
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via learning ensemble (one-class, no weighting)
     print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out, 
+    method = WeightedOneClassConformal(X_in, X_out,
                                        bboxes_one=bboxes_one,
                                        calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
     results_tmp = eval_pvalues(pvals_test, Y_test)
     results_tmp["Method"] = "Ensemble (one-class, unweighted)"
     results_tmp["Model"] = "Ensemble"
-    results = pd.concat([results, results_tmp])   
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via binary ensemble (no weighting)
     print("Running binary classifiers with learning ensemble (without weighting)...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out, 
+    method = WeightedOneClassConformal(X_in, X_out,
                                        bboxes_two=bboxes_two,
                                        calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
     results_tmp = eval_pvalues(pvals_test, Y_test)
     results_tmp["Method"] = "Ensemble (binary, unweighted)"
     results_tmp["Model"] = "Ensemble"
-    results = pd.concat([results, results_tmp])   
-
-    # Continue from here
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
 
     return results
 
@@ -305,7 +317,7 @@ for r in range(num_repetitions):
     results_new = run_experiment(dataset, random_state_new)
     results_new = add_header(results_new)
     results_new["Repetition"] = r
-    results = pd.concat([results, results_new])   
+    results = pd.concat([results, results_new])
     # Save results
     results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))
@@ -313,4 +325,3 @@ for r in range(num_repetitions):
 
 print("\nAll experiments completed.\n")
 sys.stdout.flush()
-
