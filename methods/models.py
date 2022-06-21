@@ -63,6 +63,21 @@ class ConcentricCircles(DataModel):
         X = np.sqrt(self.a)*np.random.randn(n, p)
         return X
 
+
+class ConcentricCircles2(DataModel):
+    def _sample_clean(self, n):
+        p = self.p
+        X = np.random.randn(n, p)
+        return X
+
+    def _sample_outlier(self, n):
+        p = self.p
+        rescale = np.ones((1,p))
+        rescale[0,0:int(p/2)] = np.sqrt(self.a)
+        X = rescale*np.random.randn(n, p)
+        return X
+
+
 class ConcentricCirclesMixture(DataModel):
     "This seems unecessarily complicated"
     def __init__(self, p, amplitude, random_state=None):
