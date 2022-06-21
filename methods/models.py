@@ -139,7 +139,7 @@ class BinomialModel(DataModel):
             y = np.array([np.dot(g[i],classes_id) for i in range(X.shape[0])], dtype = int)
             return y
 
-        offset = calculate_offset(purity)
+        offset = 0 #calculate_offset(purity)
         X = sample_X(n)
         is_outlier = sample_Y(X, offset)
         return X, is_outlier.astype(int)

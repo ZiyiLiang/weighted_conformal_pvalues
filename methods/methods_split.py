@@ -10,6 +10,21 @@ import pdb
 
 sys.path.append('../third_party')
 
+# Compute conformal p-values
+def conformalize_scores(scores_cal, scores_test, offset=1):
+    # Break ties at random
+    scores_m2 = np.sqrt(np.mean(np.power(scores_cal,2)))
+    eps_cal = np.random.normal(loc=0, scale=scores_m2/1e6, size=(len(scores_cal),))
+    scores_cal = scores_cal + eps_cal
+    eps_test = np.random.normal(loc=0, scale=scores_m2/1e6, size=(len(scores_test),))
+    scores_test = scores_test + eps_test
+    # Calculate conformal p-values
+    n_cal = len(scores_cal)
+    scores_mat = np.tile(scores_cal, (len(scores_test),1))
+    tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
+    pvals = (offset+tmp)/(1.0+n_cal)
+    return pvals
+
 class WeightedOneClassConformal:
     def __init__(self, X_in, X_out, bboxes_one=None, bboxes_two=None, calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         self.tuning = True
@@ -171,10 +186,11 @@ class WeightedOneClassConformal:
         #     pdb.set_trace()
 
         # Compute conformal p-values using the scores from the best model
-        n_cal = len(scores_star) - 1
-        scores_mat = np.tile(scores_star, (len(scores_star),1))
-        tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
-        pvals = tmp/(1.0+n_cal)
+        pvals = conformalize_scores(scores_star, scores_star, offset=0)
+        # n_cal = len(scores_star) - 1
+        # scores_mat = np.tile(scores_star, (len(scores_star),1))
+        # tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
+        # pvals = tmp/(1.0+n_cal)
         return pvals
 
     def _calibrate_out(self, score_test):
@@ -222,11 +238,11 @@ class WeightedOneClassConformal:
         scores_cal_star = scores_cal[b_star]
 
         # Compute conformal p-values
-        n_cal = len(scores_cal_star)
-        scores_mat = np.tile(scores_cal_star, (len(scores_star),1))
-        tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
-        pvals = (1.0+tmp)/(1.0+n_cal)
-
+        pvals = conformalize_scores(scores_cal_star, scores_star, offset=1)
+        # n_cal = len(scores_cal_star)
+        # scores_mat = np.tile(scores_cal_star, (len(scores_star),1))
+        # tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
+        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
 
     def compute_pvalues(self, X_test, return_prepvals=False):
@@ -263,10 +279,11 @@ class WeightedOneClassConformal:
                 pvals_1 = np.ones((len(pvals_0),))
             scores = pvals_0 / pvals_1
             # Compute final conformal p-value
-            n_cal = len(scores) - 1
-            scores_mat = np.tile(scores, (len(scores),1))
-            tmp = np.sum(scores_mat <= scores.reshape(len(scores),1), 1)
-            pvals = tmp/(1.0+n_cal)
+            pvals = conformalize_scores(scores, scores, offset=0)
+            # n_cal = len(scores) - 1
+            # scores_mat = np.tile(scores, (len(scores),1))
+            # tmp = np.sum(scores_mat <= scores.reshape(len(scores),1), 1)
+            # pvals = tmp/(1.0+n_cal)
             return pvals[-1], pvals_0[-1], pvals_1[-1]
 
         n_test = X_test.shape[0]
@@ -330,11 +347,11 @@ class OneClassConformal:
             print("done.")
             sys.stdout.flush()
 
-        # Compute conformal p-values
-        n_cal = len(self.scores_cal)
-        scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
-        tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
-        pvals = (1.0+tmp)/(1.0+n_cal)
+        pvals = conformalize_scores(self.scores_cal, scores_test, offset=1)
+        # n_cal = len(self.scores_cal)
+        # scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
+        # tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
+        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
 
 
@@ -395,8 +412,9 @@ class BinaryConformal:
             sys.stdout.flush()
 
         # Compute conformal p-values
-        n_cal = len(self.scores_cal)
-        scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
-        tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
-        pvals = (1.0+tmp)/(1.0+n_cal)
+        pvals = conformalize_scores(self.scores_cal, scores_test, offset=1)
+        # n_cal = len(self.scores_cal)
+        # scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
+        # tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
+        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
