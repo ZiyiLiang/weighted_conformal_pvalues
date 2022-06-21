@@ -61,8 +61,10 @@ num_repetitions = 2
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
+    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3),
+    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
+    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
     'IF': IsolationForest(random_state=random_state),
-    'SVM': OneClassSVM(),
     'LOF': LocalOutlierFactor(novelty=True)
 }
 
