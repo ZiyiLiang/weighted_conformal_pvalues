@@ -5,11 +5,27 @@ SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed")
-  N_LIST=(50 100 200 500 1000 2000 5000 10000)
+  N_LIST=(20 30 50 100 200 500 1000 2000 5000)
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
   SEED_LIST=$(seq 1 100)
+
+elif [[ $SETUP == 2 ]]; then
+  DATA_LIST=("circles-mixed")
+  N_LIST=(200 2000)
+  P_LIST=(1000)
+  A_LIST=(0.7)
+  PURITY_LIST=(0.5 0.6 0.7 0.8 0.9 0.95 0.98 0.99 1.0)
+  SEED_LIST=$(seq 1 100)
+
+elif [[ $SETUP == 3 ]]; then
+  DATA_LIST=("circles-mixed")
+  N_LIST=(20 50 100 200 500 1000 2000 5000)
+  P_LIST=(1000)
+  A_LIST=(1.5)
+  PURITY_LIST=(0.5 0.75 0.9)
+  SEED_LIST=$(seq 1 10)
 
 fi
 
@@ -59,7 +75,8 @@ for SEED in $SEED_LIST; do
               # Print order
               echo $ORD
               # Submit order
-              $ORD
+              #case 
+$ORD
               # Run command now
               #./$SCRIPT
             fi
