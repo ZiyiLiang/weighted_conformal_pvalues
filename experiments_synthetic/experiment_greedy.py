@@ -24,81 +24,6 @@ from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassCo
 from util_experiments import eval_pvalues
 
 #########################
-# Experiment parameters #
-#########################
-
-if True: # Input parameters
-    # Parse input arguments
-    print ('Number of arguments:', len(sys.argv), 'arguments.')
-    print ('Argument List:', str(sys.argv))
-    model_num = 1
-    if len(sys.argv) != 8:
-        print("Error: incorrect number of parameters.")
-        quit()
-
-    setup = int(sys.argv[1])
-    data_name = sys.argv[2]
-    n = int(sys.argv[3])
-    p = int(sys.argv[4])
-    a = float(sys.argv[5])
-    purity = float(sys.argv[6])
-    random_state = int(sys.argv[7])
-
-else: # Default parameters
-    setup = 1
-    data_name = "circles"
-    n = 1000
-    p = 100
-    a = 0.9
-    purity = 0.8
-    random_state = 2022
-
-
-# Fixed experiment parameters
-n_test = 1000
-purity_test = 0.5
-calib_size = 0.5
-alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
-num_repetitions = 2
-
-# List of possible one-class classifiers with desired hyper-parameters
-oneclass_classifiers = {
-    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3),
-    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
-    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
-    'IF': IsolationForest(random_state=random_state),
-    'LOF': LocalOutlierFactor(novelty=True)
-}
-
-# Define list of possible two-class classifiers with desired hyper-parameters
-binary_classifiers = {
-    'RF': RandomForestClassifier(random_state=random_state),
-    'KNN': KNeighborsClassifier(),
-    'SVC': SVC(probability=True),
-    'NB' : GaussianNB(),
-    'QDA': QuadraticDiscriminantAnalysis(),
-    'MLP': MLPClassifier(max_iter=500, random_state=random_state)
-}
-
-###############
-# Output file #
-###############
-outfile_prefix = "results/setup" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_purity" + str(purity) + "_seed" + str(random_state)
-outfile = outfile_prefix + ".txt"
-print("Output file: {:s}".format(outfile), end="\n")
-
-# Header for results file
-def add_header(df):
-    df["Setup"] = setup
-    df["Data"] = data_name
-    df["n"] = n
-    df["p"] = p
-    df["Signal"] = a
-    df["Purity"] = purity
-    df["Seed"] = random_state
-    return df
-
-#########################
 # Data-generating model #
 #########################
 
@@ -116,6 +41,76 @@ class DataSet:
 
     def sample(self, n, purity):
         return self.model.sample(n, purity)
+
+#########################
+# Experiment parameters #
+#########################
+
+if False: # Input parameters
+    # Parse input arguments
+    print ('Number of arguments:', len(sys.argv), 'arguments.')
+    print ('Argument List:', str(sys.argv))
+    model_num = 1
+    if len(sys.argv) != 9:
+        print("Error: incorrect number of parameters.")
+        quit()
+
+    setup = int(sys.argv[1])
+    data_name = sys.argv[2]
+    n = int(sys.argv[3])
+    p = int(sys.argv[4])
+    a = float(sys.argv[5])
+    purity = float(sys.argv[6])
+    num_models = int(sys.argv[7])
+    random_state = int(sys.argv[8])
+
+else: # Default parameters
+    setup = 1
+    data_name = "circles-mixed"
+    n = 500
+    p = 1000
+    a = 0.7
+    purity = 0.8
+    num_models = 2
+    random_state = 2022
+
+# Fixed experiment parameters
+n_test = 1000
+purity_test = 0.5
+calib_size = 0.5
+alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
+num_repetitions = 1
+
+# List of possible one-class classifiers with desired hyper-parameters
+oneclass_classifiers = dict()
+for s in range(num_models):
+    box_name = "IF" + str(s)
+    oneclass_classifiers[box_name] = IsolationForest(random_state=10000*random_state+s)
+
+# Define list of possible two-class classifiers with desired hyper-parameters
+binary_classifiers = dict()
+for s in range(num_models):
+    box_name = "RF" + str(s)
+    binary_classifiers[box_name] = RandomForestClassifier(random_state=10000*random_state+s)
+
+###############
+# Output file #
+###############
+outfile_prefix = "results/setup_greedy" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_purity" + str(purity) + "_numodels" + str(num_models) + "_seed" + str(random_state)
+outfile = outfile_prefix + ".txt"
+print("Output file: {:s}".format(outfile), end="\n")
+
+# Header for results file
+def add_header(df):
+    df["Setup"] = setup
+    df["Data"] = data_name
+    df["n"] = n
+    df["p"] = p
+    df["Signal"] = a
+    df["Purity"] = purity
+    df["Num-models"] = num_models
+    df["Seed"] = random_state
+    return df
 
 ###################
 # Run experiments #
@@ -160,20 +155,6 @@ def run_experiment(dataset, random_state):
         results_tmp["1/log(n1+1)"] = np.nan
         results = pd.concat([results, results_tmp])
 
-    ## Conformal p-values via weighted one-class classification
-    print("Running {:d} weighted one-class classifiers...".format(len(oneclass_classifiers)))
-    sys.stdout.flush()
-    for occ_name in tqdm(oneclass_classifiers.keys()):
-        occ = oneclass_classifiers[occ_name]
-        method = WeightedOneClassConformal(X_in, X_out, bboxes_one=[occ], calib_size=calib_size, tuning=True, progress=False, verbose=False)
-        pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
-        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-        results_tmp["Method"] = "Weighted One-Class"
-        results_tmp["Model"] = occ_name
-        results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
-        results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
-        results = pd.concat([results, results_tmp])
-
     ## Conformal p-values via weighted one-class classification and learning ensemble
     print("Running weighted classifiers with learning ensemble...")
     sys.stdout.flush()
@@ -188,54 +169,6 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
     results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
-    results = pd.concat([results, results_tmp])
-
-    ## Conformal p-values via learning ensemble (no weighting)
-    print("Running weighted classifiers with learning ensemble (without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out,
-                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
-                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (mixed, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
-    results = pd.concat([results, results_tmp])
-
-    ## Conformal p-values via learning ensemble (one-class, no weighting)
-    print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out,
-                                       bboxes_one=bboxes_one,
-                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (one-class, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
-    results = pd.concat([results, results_tmp])
-
-    ## Conformal p-values via binary ensemble (no weighting)
-    print("Running binary classifiers with learning ensemble (without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = WeightedOneClassConformal(X_in, X_out,
-                                       bboxes_two=bboxes_two,
-                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (binary, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
     results = pd.concat([results, results_tmp])
 
     return results
@@ -254,6 +187,7 @@ for r in range(num_repetitions):
     results_new = add_header(results_new)
     results_new["Repetition"] = r
     results = pd.concat([results, results_new])
+    pdb.set_trace()
     # Save results
     results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))
