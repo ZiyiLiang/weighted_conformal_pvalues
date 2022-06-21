@@ -21,7 +21,8 @@ def conformalize_scores(scores_cal, scores_test, offset=1):
     return pvals
 
 class WeightedOneClassConformal:
-    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_two=None, calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
+    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None, 
+                 calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         self.tuning = True
         self.verbose = verbose
         self.progress = progress
@@ -53,12 +54,17 @@ class WeightedOneClassConformal:
         Y_train = np.concatenate([[0]*n_in_train, [1]*n_out_train])
 
         # Train all the one-class models, using the same type of black-box model for inliers and outliers
-        self.num_boxes_one = len(bboxes_one)
         self.bboxes_one_in = copy.deepcopy(bboxes_one)
-        self.bboxes_one_out = copy.deepcopy(bboxes_one)
+        if bboxes_one_out is None:
+            self.bboxes_one_out = copy.deepcopy(bboxes_one)
+        else:
+            self.bboxes_one_out = copy.deepcopy(bboxes_one_out)
+        self.num_boxes_one = len(self.bboxes_one_in)
+        self.num_boxes_one_out = len(self.bboxes_one_out)
 
         for b in range(self.num_boxes_one):
             self._train_one(self.bboxes_one_in[b], X_in_train)
+        for b in range(self.num_boxes_one_out):
             self._train_one(self.bboxes_one_out[b], X_out_train)
 
         # Train all the two-class models
@@ -69,8 +75,8 @@ class WeightedOneClassConformal:
 
         # Pre-compute conformity scores using one-class models
         self.scores_in_calib_one = np.zeros((self.num_boxes_one,X_in_calib.shape[0]))
-        self.scores_outin_calib_one = np.zeros((self.num_boxes_one,X_in_calib.shape[0]))
-        self.scores_out_calib_one = np.zeros((self.num_boxes_one,X_out_calib.shape[0]))
+        self.scores_outin_calib_one = np.zeros((self.num_boxes_one_out,X_in_calib.shape[0]))
+        self.scores_out_calib_one = np.zeros((self.num_boxes_one_out,X_out_calib.shape[0]))
         self.scores_inout_calib_one = np.zeros((self.num_boxes_one,X_out_calib.shape[0]))
         for b in range(self.num_boxes_one):
             # Scores for inlier calibration data using inlier one-class model
@@ -83,6 +89,7 @@ class WeightedOneClassConformal:
                 self.scores_inout_calib_one[b] = self.bboxes_one_in[b].score_samples(X_out_calib)
             except:
                 self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
+        for b in range(self.num_boxes_one_out):
             # Scores for outlier calibration data using outlier model
             try:
                 self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
@@ -191,12 +198,12 @@ class WeightedOneClassConformal:
     def _calibrate_out(self, score_test):
         n_calib_in = self.scores_in_calib_one.shape[1]
         n_calib_out = self.scores_out_calib_one.shape[1]
-        num_boxes = self.num_boxes_one + self.num_boxes_two
+        num_boxes = self.num_boxes_one_out + self.num_boxes_two
         scores = np.zeros((num_boxes,n_calib_in+1))
         scores_cal = np.zeros((num_boxes,n_calib_out))
         score_contrast = np.zeros((num_boxes,))
 
-        for b in range(self.num_boxes_one):
+        for b in range(self.num_boxes_one_out):
             scores_cal[b] = self.scores_out_calib_one[b]
 
             # Concatenate conformity scores based on outlier model for inlier calibration data and test point
@@ -243,14 +250,16 @@ class WeightedOneClassConformal:
     def compute_pvalues(self, X_test, return_prepvals=False):
         n_test = X_test.shape[0]
         num_boxes = self.num_boxes_one + self.num_boxes_two
+        num_boxes_out = self.num_boxes_one_out + self.num_boxes_two
         scores_in_test = np.zeros((n_test,num_boxes))
-        scores_out_test = np.zeros((n_test,num_boxes))
+        scores_out_test = np.zeros((n_test,num_boxes_out))
         # Compute conformity scores for test data
         for b in range(self.num_boxes_one):
             try:
                 scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
             except:
                 scores_in_test[:,b] = 1
+        for b in range(self.num_boxes_one_out):
             try:
                 scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
             except:
