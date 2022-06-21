@@ -18,14 +18,14 @@ from sklearn.neighbors import LocalOutlierFactor
 import os, sys
 sys.path.append("../methods")
 
-from models import GaussianMixture, ConcentricCircles, BinomialModel
+from models import GaussianMixture, ConcentricCircles, ConcentricCirclesMixture, BinomialModel
 from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassConformal
 
 #########################
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -103,6 +103,8 @@ class DataSet:
     def __init__(self, data_name, random_state=None):
         if data_name=="circles":
             self.model = ConcentricCircles(p, a, random_state=random_state)
+        if data_name=="circles-mixed":
+            self.model = ConcentricCirclesMixture(p, a, random_state=random_state)
         elif data_name=="binomial":
             self.model = BinomialModel(p, a, random_state=random_state)
         else:

@@ -4,18 +4,18 @@
 SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
-  DATA_LIST=("circles")
-  N_LIST=(50 100 200 500 1000 2000 5000)
-  P_LIST=(100)
-  A_LIST=(0.7 0.8 0.9 1.5)
-  PURITY_LIST=(0.8 0.9)
-  SEED_LIST=$(seq 1 10)
+  DATA_LIST=("circles-mixed")
+  N_LIST=(50 100 200 500 1000 2000 5000 10000)
+  P_LIST=(1000)
+  A_LIST=(0.7)
+  PURITY_LIST=(0.5 0.75 0.9)
+  SEED_LIST=$(seq 1 100)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:05:00                    # Time required (20 m)
+TIME=00-00:20:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
