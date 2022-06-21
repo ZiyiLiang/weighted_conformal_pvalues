@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parameters
-SETUP="4"
+SETUP="3"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed")
@@ -29,10 +29,18 @@ elif [[ $SETUP == 3 ]]; then
 
 elif [[ $SETUP == 4 ]]; then
   DATA_LIST=("binomial")
-  N_LIST=(20 50 100 200 500 1000 2000)
+  N_LIST=(20 50 100 200 500 1000 2000 5000)
   P_LIST=(100)
   A_LIST=(3)
   PURITY_LIST=(0.5 0.75 0.9)
+  SEED_LIST=$(seq 1 100)
+
+if [[ $SETUP == 5 ]]; then
+  DATA_LIST=("circles-mixed")
+  N_LIST=(100)
+  P_LIST=(1000)
+  A_LIST=(0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2)
+  PURITY_LIST=(0.5)
   SEED_LIST=$(seq 1 10)
 
 fi
