@@ -75,9 +75,9 @@ class WeightedOneClassConformal:
                 self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
             # Scores for outlier calibration data using outlier model
             try:
-                self.scores_inout_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
+                self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
             except:
-                self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
+                self.scores_out_calib_one[b] = np.ones((X_out_calib.shape[0],))
             # Scores for inlier calibration data using outlier model
             try:
                 self.scores_outin_calib_one[b] = self.bboxes_one_out[b].score_samples(X_in_calib)
