@@ -105,7 +105,7 @@ class BinomialModel(DataModel):
         self.beta_Z = np.sqrt(amplitude)*np.random.normal(size=(p,2))
 
     def calculate_offset(self, purity):
-        X = self.sample_X(10000)
+        X = self.sample_X(1000)
         def foo(offset):
             Y = self.sample_Y(X, offset)
             return np.mean(Y) - (1.0-purity)

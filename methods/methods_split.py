@@ -8,20 +8,10 @@ from scipy.stats import ranksums
 import warnings
 import pdb
 
-sys.path.append('../third_party')
-
-# Compute conformal p-values
-def conformalize_scores(scores_cal, scores_test, offset=1):
-    assert((offset==0) or (offset==1))
-    # Calculate conformal p-values
-    n_cal = len(scores_cal) - (1-offset)
-    scores_mat = np.tile(scores_cal, (len(scores_test),1))
-    tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
-    pvals = (offset+tmp)/(1.0+n_cal)
-    return pvals
+from methods_util import conformalize_scores
 
 class IntegrativeConformal:
-    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None, 
+    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None,
                  calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         self.tuning = True
         self.verbose = verbose
@@ -83,33 +73,29 @@ class IntegrativeConformal:
             # Scores for inlier calibration data using inlier one-class model
             try:
                 self.scores_in_calib_one[b] = self.bboxes_one_in[b].score_samples(X_in_calib)
-                self.scores_in_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_one[b].shape)
             except:
                 self.scores_in_calib_one[b] = np.ones((X_in_calib.shape[0],))
-                self.scores_in_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_one[b].shape)
+            self.scores_in_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_one[b].shape)
             # Scores for outlier calibration data using inlier model
             try:
                 self.scores_inout_calib_one[b] = self.bboxes_one_in[b].score_samples(X_out_calib)
-                self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
             except:
                 self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
-                self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
+            self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
 
         for b in range(self.num_boxes_one_out):
             # Scores for outlier calibration data using outlier model
             try:
                 self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
-                self.scores_out_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_one[b].shape)
             except:
                 self.scores_out_calib_one[b] = np.ones((X_out_calib.shape[0],))
-                self.scores_out_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_one[b].shape)
+            self.scores_out_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_one[b].shape)
             # Scores for inlier calibration data using outlier model
             try:
                 self.scores_outin_calib_one[b] = self.bboxes_one_out[b].score_samples(X_in_calib)
-                self.scores_outin_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_outin_calib_one[b].shape)
             except:
                 self.scores_outin_calib_one[b] = np.ones((X_in_calib.shape[0],))
-                self.scores_outin_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_outin_calib_one[b].shape)
+            self.scores_outin_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_outin_calib_one[b].shape)
 
         # Pre-compute conformity scores using two-class models
         self.scores_in_calib_two = np.zeros((self.num_boxes_two,X_in_calib.shape[0]))
@@ -118,16 +104,14 @@ class IntegrativeConformal:
             # Scores for inlier calibration data using inlier one-class model
             try:
                 self.scores_in_calib_two[b] = self.bboxes_two[b].predict_proba(X_in_calib)[:,0]
-                self.scores_in_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_two[b].shape)
             except:
                 self.scores_in_calib_two[b] = np.ones((X_in_calib.shape[0],))
-                self.scores_in_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_two[b].shape)
+            self.scores_in_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_two[b].shape)
             try:
                 self.scores_out_calib_two[b] = self.bboxes_two[b].predict_proba(X_out_calib)[:,0]
-                self.scores_out_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_two[b].shape)
             except:
                 self.scores_out_calib_two[b] = np.ones((X_out_calib.shape[0],))
-                self.scores_out_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_two[b].shape)
+            self.scores_out_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_two[b].shape)
 
     def _train_one(self, bbox, X_train):
         # Fit the black-box one-class classification model on the training data
@@ -197,16 +181,9 @@ class IntegrativeConformal:
         # Pick the best model
         b_star = np.argmax(score_contrast)
         scores_star = scores[b_star]
-        # if len(scores)>1:
-        #     print("Best model: {:d}".format(b_star))
-        #     pdb.set_trace()
 
         # Compute conformal p-values using the scores from the best model
         pvals = conformalize_scores(scores_star, scores_star, offset=0)
-        # n_cal = len(scores_star) - 1
-        # scores_mat = np.tile(scores_star, (len(scores_star),1))
-        # tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
-        # pvals = tmp/(1.0+n_cal)
         return pvals
 
     def _calibrate_out(self, score_test):
@@ -255,10 +232,6 @@ class IntegrativeConformal:
 
         # Compute conformal p-values
         pvals = conformalize_scores(scores_cal_star, scores_star, offset=1)
-        # n_cal = len(scores_cal_star)
-        # scores_mat = np.tile(scores_cal_star, (len(scores_star),1))
-        # tmp = np.sum(scores_mat <= scores_star.reshape(len(scores_star),1), 1)
-        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
 
     def compute_pvalues(self, X_test, return_prepvals=False):
@@ -272,32 +245,28 @@ class IntegrativeConformal:
         for b in range(self.num_boxes_one):
             try:
                 scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
-                scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
             except:
                 scores_in_test[:,b] = 1
-                scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
+            scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
 
         for b in range(self.num_boxes_one_out):
             try:
                 scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
-                scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
             except:
                 scores_out_test[:,b] = 1
-                scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
+            scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             try:
                 scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
-                scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
             except:
                 scores_in_test[:,b_tot] = 1
-                scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
+            scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
             try:
                 scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
-                scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
             except:
                 scores_out_test[:,b_tot] = 1
-                scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
+            scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
 
         def compute_pvalue(score_in_test, score_out_test):
             pvals_0 = self._calibrate_in(score_in_test)
@@ -308,10 +277,6 @@ class IntegrativeConformal:
             scores = pvals_0 / pvals_1
             # Compute final conformal p-value
             pvals = conformalize_scores(scores, scores, offset=0)
-            # n_cal = len(scores) - 1
-            # scores_mat = np.tile(scores, (len(scores),1))
-            # tmp = np.sum(scores_mat <= scores.reshape(len(scores),1), 1)
-            # pvals = tmp/(1.0+n_cal)
             return pvals[-1], pvals_0[-1], pvals_1[-1]
 
         n_test = X_test.shape[0]
@@ -376,10 +341,6 @@ class OneClassConformal:
             sys.stdout.flush()
 
         pvals = conformalize_scores(self.scores_cal, scores_test, offset=1)
-        # n_cal = len(self.scores_cal)
-        # scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
-        # tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
-        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
 
 
@@ -418,9 +379,9 @@ class BinaryConformal:
             sys.stdout.flush()
         try:
             self.scores_cal = self.bbox.predict_proba(X_in_calib)[:,0]
-            self.scores_cal += np.random.normal(loc=0, scale=1e-6, size=self.scores_cal.shape)
         except:
             self.scores_cal = np.ones((X_in_calib.shape[0],))
+        self.scores_cal += np.random.normal(loc=0, scale=1e-6, size=self.scores_cal.shape)
         if self.verbose:
             print("done.")
             sys.stdout.flush()
@@ -434,17 +395,13 @@ class BinaryConformal:
             sys.stdout.flush()
         try:
             scores_test = self.bbox.predict_proba(X_test)[:,0]
-            scores_test += np.random.normal(loc=0, scale=1e-6, size=scores_test.shape)
         except:
             scores_test = np.ones((X_test.shape[0],))
+        scores_test += np.random.normal(loc=0, scale=1e-6, size=scores_test.shape)
         if self.verbose:
             print("done.")
             sys.stdout.flush()
 
         # Compute conformal p-values
         pvals = conformalize_scores(self.scores_cal, scores_test, offset=1)
-        # n_cal = len(self.scores_cal)
-        # scores_mat = np.tile(self.scores_cal, (len(scores_test),1))
-        # tmp = np.sum(scores_mat <= scores_test.reshape(len(scores_test),1), 1)
-        # pvals = (1.0+tmp)/(1.0+n_cal)
         return pvals
