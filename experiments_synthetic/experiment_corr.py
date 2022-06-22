@@ -40,7 +40,7 @@ class DataSet:
             exit(0)
 
     def sample(self, n, purity, offset=None):
-        return self.model.sample(n, purity, offset=None)
+        return self.model.sample(n, purity, offset=offset)
 
     def calculate_offset(self, purity):
         return self.model.calculate_offset(purity)
@@ -81,7 +81,7 @@ else: # Default parameters
 n_test = 2
 purity_test = 1
 calib_size = 0.5
-num_repetitions = 100
+num_repetitions = 10000
 
 # Choose a family of one-class classifiers
 bbox_occ_list = {'SVM-rbf':OneClassSVM(kernel='rbf', degree=3),
@@ -114,12 +114,13 @@ def add_header(df):
 if data_name=="binomial":
     model = DataSet(data_name, random_state=random_state)
     offset = model.calculate_offset(purity)
+    offset_test = model.calculate_offset(1)
 
 def measure_correlation(n, random_state):
     dataset = DataSet(data_name, random_state=random_state)
     if data_name=="binomial":
-        X, Y = dataset.sample(n_test, purity, offset=offset)
-        X_test, Y_test = dataset.sample(n_test, 1, offset=offset)
+        X, Y = dataset.sample(n, purity, offset=offset)
+        X_test, Y_test = dataset.sample(n_test, 1, offset=offset_test)
     else:
         X, Y = dataset.sample(n, purity)
         X_test, Y_test = dataset.sample(n_test, 1)

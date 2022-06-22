@@ -5,17 +5,17 @@ SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed" "binomial")
-  N_LIST=(10 20 50 100)
+  N_LIST=(20 30 40 50 60 70 80 90 100 150 200 250 300 350 400)
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 1 20)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-01:00:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
