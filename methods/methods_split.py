@@ -20,7 +20,7 @@ def conformalize_scores(scores_cal, scores_test, offset=1):
     pvals = (offset+tmp)/(1.0+n_cal)
     return pvals
 
-class WeightedOneClassConformal:
+class IntegrativeConformal:
     def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None, 
                  calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         self.tuning = True

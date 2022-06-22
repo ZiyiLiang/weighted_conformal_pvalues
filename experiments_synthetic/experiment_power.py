@@ -19,7 +19,7 @@ import os, sys
 sys.path.append("../methods")
 
 from models import GaussianMixture, ConcentricCircles, ConcentricCirclesMixture, BinomialModel
-from methods_split import BinaryConformal, OneClassConformal, WeightedOneClassConformal
+from methods_split import BinaryConformal, OneClassConformal, IntegrativeConformal
 
 from util_experiments import eval_pvalues
 
@@ -122,7 +122,7 @@ def run_experiment(dataset, random_state):
     ## Conformal p-values via learning ensemble (no weighting)
     print("Running weighted classifiers with learning ensemble (without weighting)...")
     sys.stdout.flush()
-    method = WeightedOneClassConformal(X_in, X_out,
+    method = IntegrativeConformal(X_in, X_out,
                                        bboxes_one=bboxes_one_in, bboxes_one_out=bboxes_one_out,
                                        calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
     pvals_test = method.compute_pvalues(X_test)
@@ -136,7 +136,7 @@ def run_experiment(dataset, random_state):
     ## Conformal p-values via weighted one-class classification and learning ensemble
     print("Running weighted classifiers with learning ensemble...")
     sys.stdout.flush()
-    method = WeightedOneClassConformal(X_in, X_out,
+    method = IntegrativeConformal(X_in, X_out,
                                        bboxes_one=bboxes_one_in, bboxes_one_out=bboxes_one_out,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
