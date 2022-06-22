@@ -7,8 +7,8 @@ plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
 plot.5 <- FALSE
-plot.6 <- TRUE
-
+plot.6 <- FALSE
+plot.7 <- TRUE
 
 #############
 ## Setup 1 ##
@@ -578,5 +578,49 @@ if(plot.6) {
         ylab("") +
         theme_bw()
     pp %>% ggsave(file=sprintf("figures/experiment_greedy_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
+
+}
+
+
+###########################
+## Setup 7 (correlation) ##
+###########################
+
+
+if(plot.7) {
+
+    idir <- "results_hpc/setup_corr1/"
+    ifile.list <- list.files(idir)
+
+    results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
+        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+    }))
+
+    method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
+    method.labels <- c("Integrative", "OCC (ensemble)", "Binary (ensemble)", "OCC (naive)", "Binary (naive)")
+    color.scale <- c("darkviolet", "deeppink", "slateblue", "red", "blue", "darkgreen", "green")
+    shape.scale <- c(8, 17, 15, 3, 1, 1)
+    alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
+
+
+    df <- results.raw %>%
+        group_by(Setup, Data, n, p, Signal, Purity) %>%
+        summarise(Integrative=mean(Integrative), OCC=mean(OCC), `OCC-Theory`=mean(`OCC-Theory`)) %>%
+        gather(Integrative, OCC, `OCC-Theory`, key="Key", value="Value")
+    
+    pp <- df %>%
+        ggplot(aes(x=n, y=Value, color=Key, shape=Key)) +
+        geom_point() +
+        geom_line() +
+        scale_x_log10() +
+        scale_y_log10() +
+        ## scale_color_manual(values=color.scale) +
+        ## scale_shape_manual(values=shape.scale) +
+        ## scale_alpha_manual(values=alpha.scale) +
+        xlab("Sample size") +
+        ylab("") +
+        theme_bw()
+    pp
+    #%>% ggsave(file=sprintf("figures/experiment_greedy_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
 
 }

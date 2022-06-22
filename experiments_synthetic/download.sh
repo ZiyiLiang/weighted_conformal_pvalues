@@ -8,4 +8,5 @@ mkdir -p results_hpc
 #rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup4/* results_hpc/setup4/
 
 #rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_power1/* results_hpc/setup_power1/
-rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_greedy1/* results_hpc/setup_greedy1/
+#rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_greedy1/* results_hpc/setup_greedy1/
+rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_corr1/* results_hpc/setup_corr1/

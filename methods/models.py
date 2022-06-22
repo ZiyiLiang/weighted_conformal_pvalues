@@ -103,43 +103,44 @@ class BinomialModel(DataModel):
     def __init__(self, p, amplitude, random_state=None):
         super().__init__(p, amplitude, random_state=random_state)
         self.beta_Z = np.sqrt(amplitude)*np.random.normal(size=(p,2))
+
+    def calculate_offset(self, purity):
+        X = self.sample_X(10000)
+        def foo(offset):
+            Y = self.sample_Y(X, offset)
+            return np.mean(Y) - (1.0-purity)
+        offset = optimize.bisect(foo, -1000, 1000)
+        return offset
         
-    def sample(self, n, purity=1, random_state=None):
+    def sample_X(self, n):
+        X = np.random.normal(0, 1, (n,self.p))
+        X[:,0] = np.random.uniform(low=0, high=1, size=(n,))
+        factor = 0.1
+        idx_1 = np.where(X[:,0]<=factor)[0]
+        idx_2 = np.where(X[:,0]>factor)[0]
+        X[idx_1,0] = 0
+        X[idx_2,0] = 0
+        return X
 
-        def calculate_offset(purity):
-            X = sample_X(10000)
-            def foo(offset):
-                Y = sample_Y(X, offset)
-                return np.mean(Y) - (1.0-purity)
-            offset = optimize.bisect(foo, -1000, 1000)
-            return offset
+    def compute_prob(self, X, offset):
+        f = np.matmul(X,self.beta_Z)
+        f[:,0] = f[:,0] - offset/2
+        f[:,1] = f[:,1] + offset/2
+        prob = np.exp(f)
+        prob_y = prob / np.expand_dims(np.sum(prob,1),1)
+        return prob_y
 
-        def sample_X(n):
-            X = np.random.normal(0, 1, (n,self.p))
-            X[:,0] = np.random.uniform(low=0, high=1, size=(n,))
-            factor = 0.1
-            idx_1 = np.where(X[:,0]<=factor)[0]
-            idx_2 = np.where(X[:,0]>factor)[0]
-            X[idx_1,0] = 0
-            X[idx_2,0] = 0
-            return X
+    def sample_Y(self, X, offset):
+        prob_y = self.compute_prob(X, offset)
+        g = np.array([np.random.multinomial(1,prob_y[i]) for i in range(X.shape[0])], dtype = float)
+        classes_id = np.arange(2)
+        y = np.array([np.dot(g[i],classes_id) for i in range(X.shape[0])], dtype = int)
+        return y
 
-        def compute_prob(X, offset):
-            f = np.matmul(X,self.beta_Z)
-            f[:,0] = f[:,0] - offset/2
-            f[:,1] = f[:,1] + offset/2
-            prob = np.exp(f)
-            prob_y = prob / np.expand_dims(np.sum(prob,1),1)
-            return prob_y
+    def sample(self, n, purity=1, offset=None, random_state=None):
 
-        def sample_Y(X, offset):
-            prob_y = compute_prob(X, offset)
-            g = np.array([np.random.multinomial(1,prob_y[i]) for i in range(X.shape[0])], dtype = float)
-            classes_id = np.arange(2)
-            y = np.array([np.dot(g[i],classes_id) for i in range(X.shape[0])], dtype = int)
-            return y
-
-        offset = calculate_offset(purity)
-        X = sample_X(n)
-        is_outlier = sample_Y(X, offset)
+        if offset is None:
+            offset = self.calculate_offset(purity)
+        X = self.sample_X(n)
+        is_outlier = self.sample_Y(X, offset)
         return X, is_outlier.astype(int)

@@ -46,7 +46,7 @@ class DataSet:
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -106,10 +106,18 @@ def add_header(df):
 # Run experiments #
 ###################
 
+if data_name=="binomial":
+    model = DataSet(data_name, random_state=random_state)
+    offset = model.calculate_offset(purity)
+
 def measure_correlation(n, random_state):
     dataset = DataSet(data_name, random_state=random_state)
     X, Y = dataset.sample(n, purity)
-    X_test, Y_test = dataset.sample(n_test, 1)
+    
+    if data_name=="binomial":
+        X_test, Y_test = dataset.sample(n_test, 1, offset=offset)
+    else:
+        X_test, Y_test = dataset.sample(n_test, 1)
 
     # Extract the inliers from the data
     X_in = X[Y==0]
@@ -132,7 +140,7 @@ def measure_correlation(n, random_state):
 P_vals_int = np.zeros((num_repetitions, n_test))
 P_vals_occ = np.zeros((num_repetitions, n_test))
 for r in tqdm(range(num_repetitions)):
-    P_vals_int[r], P_vals_occ[r] = measure_correlation(n, random_state*1e6+r)
+    P_vals_int[r], P_vals_occ[r] = measure_correlation(n, int(random_state*1000000+r))
 P_cov_int = np.corrcoef(P_vals_int.T)
 P_cov_occ = np.corrcoef(P_vals_occ.T)
 corr_int = P_cov_int[0,1]
