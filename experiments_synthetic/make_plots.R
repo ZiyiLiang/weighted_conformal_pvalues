@@ -419,7 +419,7 @@ if(plot.4) {
 
 if(plot.5) {
 
-    idir <- "results_hpc/setup5/"
+    idir <- "results_hpc/setup_power1/"
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
@@ -451,8 +451,8 @@ if(plot.5) {
 #        mutate(Metric = factor(Metric, metric.values, metric.labels))
 
     results.fdr.models <- results %>%
-        mutate(Z=E_U1_Y0/`1/log(n1+1)`) %>%
-        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
+        mutate(Z=E_U1_Y0 * `1/log(n1+1)`) %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha, Gamma) %>%
         summarise(E_U1_Y0=mean(E_U1_Y0), RHS=mean(`1/log(n1+1)`), Z=mean(Z),
                   Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
 
@@ -464,16 +464,16 @@ if(plot.5) {
         mutate(Purity = sprintf("Inliers: %.2f", Purity))
 
     pp <- df %>%
-        filter(Data=="circles-mixed", n>10, p==1000, Alpha==alpha.nominal) %>%
+        filter(Data=="circles-mixed", n==100, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
         filter(Method %in% method.values) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
-        ggplot(aes(x=Signal, y=Mean, color=Method, shape=Method, alpha=Method)) +
+        ggplot(aes(x=Gamma, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
         geom_line() +
 #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(Metric~Purity) +
-#        scale_x_log10(breaks=c(30, 300, 3000)) +
+        facet_wrap(Metric~Purity, scales="free") +
+        scale_x_log10() +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
         scale_alpha_manual(values=alpha.scale) +

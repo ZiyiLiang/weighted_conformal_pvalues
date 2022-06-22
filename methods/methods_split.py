@@ -78,28 +78,38 @@ class WeightedOneClassConformal:
         self.scores_outin_calib_one = np.zeros((self.num_boxes_one_out,X_in_calib.shape[0]))
         self.scores_out_calib_one = np.zeros((self.num_boxes_one_out,X_out_calib.shape[0]))
         self.scores_inout_calib_one = np.zeros((self.num_boxes_one,X_out_calib.shape[0]))
+
         for b in range(self.num_boxes_one):
             # Scores for inlier calibration data using inlier one-class model
             try:
                 self.scores_in_calib_one[b] = self.bboxes_one_in[b].score_samples(X_in_calib)
+                self.scores_in_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_one[b].shape)
             except:
                 self.scores_in_calib_one[b] = np.ones((X_in_calib.shape[0],))
+                self.scores_in_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_one[b].shape)
             # Scores for outlier calibration data using inlier model
             try:
                 self.scores_inout_calib_one[b] = self.bboxes_one_in[b].score_samples(X_out_calib)
+                self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
             except:
                 self.scores_inout_calib_one[b] = np.ones((X_out_calib.shape[0],))
+                self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
+
         for b in range(self.num_boxes_one_out):
             # Scores for outlier calibration data using outlier model
             try:
                 self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
+                self.scores_out_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_one[b].shape)
             except:
                 self.scores_out_calib_one[b] = np.ones((X_out_calib.shape[0],))
+                self.scores_out_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_one[b].shape)
             # Scores for inlier calibration data using outlier model
             try:
                 self.scores_outin_calib_one[b] = self.bboxes_one_out[b].score_samples(X_in_calib)
+                self.scores_outin_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_outin_calib_one[b].shape)
             except:
                 self.scores_outin_calib_one[b] = np.ones((X_in_calib.shape[0],))
+                self.scores_outin_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_outin_calib_one[b].shape)
 
         # Pre-compute conformity scores using two-class models
         self.scores_in_calib_two = np.zeros((self.num_boxes_two,X_in_calib.shape[0]))
@@ -108,12 +118,16 @@ class WeightedOneClassConformal:
             # Scores for inlier calibration data using inlier one-class model
             try:
                 self.scores_in_calib_two[b] = self.bboxes_two[b].predict_proba(X_in_calib)[:,0]
+                self.scores_in_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_two[b].shape)
             except:
                 self.scores_in_calib_two[b] = np.ones((X_in_calib.shape[0],))
+                self.scores_in_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_calib_two[b].shape)
             try:
                 self.scores_out_calib_two[b] = self.bboxes_two[b].predict_proba(X_out_calib)[:,0]
+                self.scores_out_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_two[b].shape)
             except:
                 self.scores_out_calib_two[b] = np.ones((X_out_calib.shape[0],))
+                self.scores_out_calib_two[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_calib_two[b].shape)
 
     def _train_one(self, bbox, X_train):
         # Fit the black-box one-class classification model on the training data
@@ -253,27 +267,37 @@ class WeightedOneClassConformal:
         num_boxes_out = self.num_boxes_one_out + self.num_boxes_two
         scores_in_test = np.zeros((n_test,num_boxes))
         scores_out_test = np.zeros((n_test,num_boxes_out))
+
         # Compute conformity scores for test data
         for b in range(self.num_boxes_one):
             try:
                 scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
+                scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
             except:
                 scores_in_test[:,b] = 1
+                scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
+
         for b in range(self.num_boxes_one_out):
             try:
                 scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
+                scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
             except:
                 scores_out_test[:,b] = 1
+                scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             try:
                 scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+                scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
             except:
                 scores_in_test[:,b_tot] = 1
+                scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
             try:
                 scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+                scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
             except:
                 scores_out_test[:,b_tot] = 1
+                scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
 
         def compute_pvalue(score_in_test, score_out_test):
             pvals_0 = self._calibrate_in(score_in_test)
@@ -394,6 +418,7 @@ class BinaryConformal:
             sys.stdout.flush()
         try:
             self.scores_cal = self.bbox.predict_proba(X_in_calib)[:,0]
+            self.scores_cal += np.random.normal(loc=0, scale=1e-6, size=self.scores_cal.shape)
         except:
             self.scores_cal = np.ones((X_in_calib.shape[0],))
         if self.verbose:
@@ -409,6 +434,7 @@ class BinaryConformal:
             sys.stdout.flush()
         try:
             scores_test = self.bbox.predict_proba(X_test)[:,0]
+            scores_test += np.random.normal(loc=0, scale=1e-6, size=scores_test.shape)
         except:
             scores_test = np.ones((X_test.shape[0],))
         if self.verbose:
