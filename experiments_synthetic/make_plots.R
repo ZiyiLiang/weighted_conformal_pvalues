@@ -432,7 +432,7 @@ if(plot.5) {
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- FALSE
+    plot.fdr <- TRUE
 
     if(plot.fdr) {
         results <- results.raw %>%
@@ -446,41 +446,52 @@ if(plot.5) {
         metric.labels <- c("TPR", "FPR")
     }
 
+    z.lab <- parse(text=latex2exp::TeX("$\\frac{E( \\hat{u}_1(X) \\,|\\, Y=0 )}{1/\\log(n_1+1)}$"))
+    
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric="Z", Mean=1)# %>%
-#        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    df.nominal <- tibble(Metric="Z", Mean=1) %>%
+        mutate(Metric = factor(Metric, c("Power", "Z"), c("Power", z.lab)))
 
     results.fdr.models <- results %>%
-        mutate(Z=E_U1_Y0 * `1/log(n1+1)`) %>%
+        mutate(Z=E_U1_Y0 / `1/log(n1+1)`) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha, Gamma) %>%
-        summarise(E_U1_Y0=mean(E_U1_Y0), RHS=mean(`1/log(n1+1)`), Z=mean(Z),
+        summarise(Z.se=2*sd(Z)/sqrt(n()), Z=mean(Z),
                   Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
 
-    df <- results.fdr.models %>%
+    df.mean <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         gather(Power, Z, key="Metric", value="Mean") %>%
-        select(-Power.se, -TypeI, -TypeI.se, E_U1_Y0, -RHS) %>%
-        #mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
+        select(-TypeI, -TypeI.se)
+    df.se <- results.fdr.models %>%
+        filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
+        gather(Power.se, Z.se, key="Metric", value="SE") %>%
+        select(-Z, -Power, -TypeI, -TypeI.se) %>%
+        mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
+               Metric = ifelse(Metric=="Z.se", "Z", Metric))
+    df <- inner_join(df.mean, df.se) %>%
         mutate(Purity = sprintf("Inliers: %.2f", Purity))
 
     pp <- df %>%
-        filter(Data=="circles-mixed", n==100, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
+        filter(Data=="circles-mixed", n==200, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
         filter(Method %in% method.values) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
+        mutate(Metric = factor(Metric, c("Power", "Z"), c("Power", z.lab))) %>%
         ggplot(aes(x=Gamma, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
         geom_line() +
-#        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_wrap(Metric~Purity, scales="free") +
+        facet_grid(Metric~Purity, scales="free", labeller=label_parsed) +
         scale_x_log10() +
+#        scale_y_continuous(lim=c(0,1)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
         scale_alpha_manual(values=alpha.scale) +
-        xlab("Signal") +
+        xlab("SVM gamma") +
         ylab("") +
         theme_bw()
-    pp
+    pp %>% ggsave(file=sprintf("figures/experiment_power_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.75, height=3, units="in")
+    
 
 }
 
@@ -504,7 +515,7 @@ if(plot.6) {
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- TRUE
+    plot.fdr <- FALSE
 
     if(plot.fdr) {
         results <- results.raw %>%
