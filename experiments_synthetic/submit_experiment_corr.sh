@@ -40,7 +40,7 @@ for SEED in $SEED_LIST; do
         for A in "${A_LIST[@]}"; do
           for PURITY in "${PURITY_LIST[@]}"; do
             
-            JOBN="setup_corr"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_purity"$PURITY"_gamma"$GAMMA"_seed"$SEED
+            JOBN="setup_corr"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_purity"$PURITY"_seed"$SEED
             OUT_FILE=$OUT_DIR"/"$JOBN".txt"
             COMPLETE=0
             #ls $OUT_FILE
@@ -50,7 +50,7 @@ for SEED in $SEED_LIST; do
 
             if [[ $COMPLETE -eq 0 ]]; then
               # Script to be run
-              SCRIPT="experiment_corr.sh $SETUP $DATA $N $P $A $PURITY $$SEED"
+              SCRIPT="experiment_corr.sh $SETUP $DATA $N $P $A $PURITY $SEED"
               # Define job name for this chromosome
               OUTF=$LOGS"/"$JOBN".out"
               ERRF=$LOGS"/"$JOBN".err"
@@ -59,7 +59,7 @@ for SEED in $SEED_LIST; do
               # Print order
               echo $ORD
               # Submit order
-              #$ORD
+              $ORD
               # Run command now
               #./$SCRIPT
             fi

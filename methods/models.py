@@ -19,7 +19,7 @@ class DataModel:
     def _sample_outlier(self, n):
         return None
 
-    def sample(self, n, purity, random_state=None):
+    def sample(self, n, purity, offset=None, random_state=None):
         if random_state is not None:
             np.random.seed(random_state)
         p = self.p

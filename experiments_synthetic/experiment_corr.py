@@ -39,8 +39,13 @@ class DataSet:
             print("Error: unknown model name!")
             exit(0)
 
-    def sample(self, n, purity):
-        return self.model.sample(n, purity)
+    def sample(self, n, purity, offset=None):
+        return self.model.sample(n, purity, offset=None)
+
+    def calculate_offset(self, purity):
+        return self.model.calculate_offset(purity)
+
+
 
 #########################
 # Experiment parameters #
@@ -112,11 +117,11 @@ if data_name=="binomial":
 
 def measure_correlation(n, random_state):
     dataset = DataSet(data_name, random_state=random_state)
-    X, Y = dataset.sample(n, purity)
-    
     if data_name=="binomial":
+        X, Y = dataset.sample(n_test, purity, offset=offset)
         X_test, Y_test = dataset.sample(n_test, 1, offset=offset)
     else:
+        X, Y = dataset.sample(n, purity)
         X_test, Y_test = dataset.sample(n_test, 1)
 
     # Extract the inliers from the data

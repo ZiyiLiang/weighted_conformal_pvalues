@@ -5,11 +5,11 @@ SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed")
-  N_LIST=(20 30 50 100 200 500 1000 2000 5000)
+  N_LIST=(1000)
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
-  NUM_MODELS_LIST=(1 5 10)
+  NUM_MODELS_LIST=(1 2 5 10 20 50 100)
   SEED_LIST=$(seq 1 100)
 
 fi
@@ -42,7 +42,7 @@ for SEED in $SEED_LIST; do
           for PURITY in "${PURITY_LIST[@]}"; do
             for NUM_MODELS in "${NUM_MODELS_LIST[@]}"; do
               
-              JOBN="setup_greedy"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_purity"$PURITY"_nummodels"$NUM_MODELS"_seed"$SEED
+              JOBN="setup_greedy"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_purity"$PURITY"_numodels"$NUM_MODELS"_seed"$SEED
               OUT_FILE=$OUT_DIR"/"$JOBN".txt"
               COMPLETE=0
               #ls $OUT_FILE
