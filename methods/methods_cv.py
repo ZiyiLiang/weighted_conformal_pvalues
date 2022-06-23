@@ -119,9 +119,10 @@ class IntegrativeConformal:
             # Train the binary classification models
             for b in range(self.num_boxes_two):
                 for k in range(self.n_folds_in):
-                    train_idx = self.folds_in[k][0]
-                    X_train = np.concatenate([X_intest[train_idx], self.X_out],0)
-                    Y_train = np.concatenate([[0]*len(train_idx), [1]*self.X_out.shape[0]])
+                    train_idx_in = self.folds_in[k][0]
+                    train_idx_out = self.folds_out[k][0]
+                    X_train = np.concatenate([X_intest[train_idx_in], self.X_out[train_idx_out]],0)
+                    Y_train = np.concatenate([[0]*len(train_idx_in), [1]*len(train_idx_out)])
                     try:
                         self.bboxes_two[b][k].fit(X_train, Y_train)
                     except:
@@ -168,8 +169,11 @@ class IntegrativeConformal:
             for b2 in range(self.num_boxes_two):
                 b = b2 + self.num_boxes_one_in
                 for k in range(self.n_folds_in):
+                    train_idx_out = self.folds_out[k][0]
+                    cal_idx_out = self.folds_out[k][1]
                     try:
-                        scores_out[b,k] = self.bboxes_two[b2][k].predict_proba(self.X_out)[:,0]
+                        scores_out[b,k,cal_idx_out] = self.bboxes_two[b2][k].predict_proba(self.X_out[cal_idx_out])[:,0]
+                        scores_out[b,k,train_idx_out] = np.median(scores_caltest[b])
                     except:
                         scores_out[b,k] = 1
                     scores_out[b,k] += np.random.normal(loc=0, scale=1e-6, size=(self.X_out.shape[0],))
