@@ -43,7 +43,7 @@ class IntegrativeConformal:
         X_train = np.concatenate([X_in_train, X_out_train],0)
         Y_train = np.concatenate([[0]*n_in_train, [1]*n_out_train])
 
-        # Train all the one-class models, using the same type of black-box model for inliers and outliers
+        # Train all the one-class models
         self.bboxes_one_in = copy.deepcopy(bboxes_one)
         if bboxes_one_out is None:
             self.bboxes_one_out = copy.deepcopy(bboxes_one)
@@ -279,7 +279,6 @@ class IntegrativeConformal:
             pvals = conformalize_scores(scores, scores, offset=0)
             return pvals[-1], pvals_0[-1], pvals_1[-1]
 
-        n_test = X_test.shape[0]
         if self.progress:
             iterator = tqdm(range(n_test))
         else:
