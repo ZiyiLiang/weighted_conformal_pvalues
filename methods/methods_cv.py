@@ -13,7 +13,7 @@ from methods_util import conformalize_scores
 
 class IntegrativeConformal:
     def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None,
-                 n_folds=10, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
+                 n_folds=5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
         assert n_folds > 1
 
         self.tuning = True
@@ -31,8 +31,8 @@ class IntegrativeConformal:
         if bboxes_two is None:
             bboxes_two = []
 
-        n_folds_in = int(np.maximum(2, np.minimum(n_folds, X_in.shape[0]/5)))
-        n_folds_out = int(np.maximum(2, np.minimum(n_folds, X_out.shape[0]/5)))
+        n_folds_in = int(np.maximum(2, np.minimum(n_folds, X_in.shape[0])))
+        n_folds_out = int(np.maximum(2, np.minimum(n_folds, X_out.shape[0])))
         self.n_folds = np.minimum(n_folds_in, n_folds_out)
 
         # Split the inliers and placeholder test point into folds
@@ -179,8 +179,8 @@ class IntegrativeConformal:
             # Estimate the performance of each model
             score_contrast = np.zeros((num_boxes,))
             for b in range(num_boxes):
-                # Change the direction of the scores, if necessary
-                if self.tuning:
+                # Change the direction of the scores, if necessary (do not do this for binary classifiers)
+                if (self.tuning) and (b<self.num_boxes_one_out):
                     # Large score <-> large p-value
                     # We expect the outliers should have smaller scores
                     # Concatenate conformity scores for inlier calibration data and test point
@@ -198,6 +198,7 @@ class IntegrativeConformal:
 
             # Pick the best OCC model
             b_star = np.argmax(score_contrast)
+            print("Best model for inliers: {:d}".format(b_star))
 
             # Compute the preliminary p-values using the best inlier model
             pvals = conformalize_scores(scores_caltest[b_star], scores_caltest[b_star], offset=0)
@@ -246,6 +247,7 @@ class IntegrativeConformal:
 
             # Pick the best OCC model
             b_star = np.argmax(score_contrast)              
+            print("Best model for outliers: {:d}".format(b_star))
 
             # Compute the preliminary p-values using the best outlier model
             scores_cal = self.scores_out_calib_one[b_star]

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parameters
-SETUP="2"
+SETUP="1"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed")
@@ -9,7 +9,7 @@ if [[ $SETUP == 1 ]]; then
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 25)
+  SEED_LIST=$(seq 1 200)
 
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("binomial")
@@ -23,7 +23,7 @@ fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-00:30:00                    # Time required (30 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix

@@ -58,20 +58,20 @@ else: # Default parameters
 
 
 # Fixed experiment parameters
-n_test = 100
+n_test = 10
 purity_test = 0.5
-n_folds = 10
+n_folds = 5
 calib_size = 0.5
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
-num_repetitions = 2
+num_repetitions = 1
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
-    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3),
-    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
+    'SVM-rbf': OneClassSVM(kernel='rbf', gamma='auto'),
+    'SVM-sig': OneClassSVM(kernel='sigmoid'),
     'SVM-pol': OneClassSVM(kernel='poly', degree=3),
-    'IF': IsolationForest(random_state=random_state),
-    'LOF': LocalOutlierFactor(novelty=True)
+    'IF': IsolationForest(random_state=random_state)#,
+    #'LOF': LocalOutlierFactor(contamination=0.001, novelty=True)
 }
 
 # Define list of possible two-class classifiers with desired hyper-parameters
@@ -118,8 +118,8 @@ class DataSet:
             print("Error: unknown model name!")
             exit(0)
 
-    def sample(self, n, purity):
-        return self.model.sample(n, purity)
+    def sample(self, n, purity, random_state=None):
+        return self.model.sample(n, purity, random_state=random_state)
 
 ###################
 # Run experiments #
@@ -131,7 +131,7 @@ def run_experiment(dataset, random_state):
     X_in = X[Y==0]
     X_out = X[Y==1]
     # Sample the test data
-    X_test, Y_test = dataset.sample(n_test, purity_test)
+    X_test, Y_test = dataset.sample(n_test, purity_test, random_state=random_state+100001)
 
     # Initialize result data frame
     results = pd.DataFrame({})

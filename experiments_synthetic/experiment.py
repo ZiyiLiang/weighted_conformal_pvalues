@@ -114,8 +114,8 @@ class DataSet:
             print("Error: unknown model name!")
             exit(0)
 
-    def sample(self, n, purity):
-        return self.model.sample(n, purity)
+    def sample(self, n, purity, random_state=None):
+        return self.model.sample(n, purity, random_state=random_state)
 
 ###################
 # Run experiments #
