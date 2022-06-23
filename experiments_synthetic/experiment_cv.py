@@ -67,11 +67,12 @@ num_repetitions = 1
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
-    'SVM-rbf': OneClassSVM(kernel='rbf', gamma='auto'),
+    'SVM-rbf': OneClassSVM(kernel='rbf', gamma=1/4000),
+    'SVM-rbf': OneClassSVM(kernel='rbf', gamma=1/400),
     'SVM-sig': OneClassSVM(kernel='sigmoid'),
     'SVM-pol': OneClassSVM(kernel='poly', degree=3),
-    'IF': IsolationForest(random_state=random_state)#,
-    #'LOF': LocalOutlierFactor(contamination=0.001, novelty=True)
+    'IF': IsolationForest(random_state=random_state),
+    'LOF': LocalOutlierFactor(contamination=0.001, novelty=True)
 }
 
 # Define list of possible two-class classifiers with desired hyper-parameters

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parameters
-SETUP="1"
+SETUP="2"
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("circles-mixed")
@@ -9,7 +9,7 @@ if [[ $SETUP == 1 ]]; then
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 200)
+  SEED_LIST=$(seq 1 100)
 
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("binomial")
@@ -17,13 +17,13 @@ elif [[ $SETUP == 2 ]]; then
   P_LIST=(100)
   A_LIST=(3)
   PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 25)
+  SEED_LIST=$(seq 1 100)
 
 fi
 
 # Slurm parameters
-MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:30:00                    # Time required (30 m)
+MEMO=2G                             # Memory required (2 GB)
+TIME=00-00:20:00                    # Time required (30 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
@@ -67,7 +67,7 @@ for SEED in $SEED_LIST; do
               # Print order
               echo $ORD
               # Submit order
-              $ORD
+              #$ORD
               # Run command now
               #./$SCRIPT
             fi
