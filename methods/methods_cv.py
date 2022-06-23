@@ -47,7 +47,6 @@ class IntegrativeConformal:
         # Pre-assign the test point to the last fold
         self.test_fold_id = self.n_folds-1
 
-
         # Initialize the one-class models for outliers
         if bboxes_one_out is None:
             self.bboxes_one_out = [[copy.deepcopy(box) for k in range(self.n_folds)] for box in bboxes_one]
@@ -77,7 +76,6 @@ class IntegrativeConformal:
         for b in range(self.num_boxes_one_out):
             for k in range(self.n_folds_out):
                 cal_idx = self.folds_out[k][1]
-                n_cal = len(cal_idx)
                 try:
                     self.scores_out_calib_one[b,cal_idx] = self.bboxes_one_out[b][k].score_samples(X_out[cal_idx])
                 except:
@@ -95,9 +93,14 @@ class IntegrativeConformal:
                 self.scores_outin_calib_one[b,k] += np.random.normal(loc=0, scale=1e-6, size=(X_in.shape[0],))
 
 
-        # Initialize the one-class models for inliers
+        # Initialize the one-class models for inliers (these will be trained once we have a test point)
         self.bboxes_one_in = [[copy.deepcopy(box) for k in range(self.n_folds)] for box in bboxes_one]
         self.num_boxes_one_in = len(self.bboxes_one_in)
+
+        # Initialize the binary classification models (these will be trained once we have a test point)
+        self.bboxes_two = [[copy.deepcopy(box) for k in range(self.n_folds)] for box in bboxes_two]
+        self.num_boxes_two = len(self.bboxes_two)
+        
 
     def compute_pvalue_single(self, X_test, return_prepvals=False):
         def _calibrate_in():
@@ -108,55 +111,88 @@ class IntegrativeConformal:
             for b in range(self.num_boxes_one_in):
                 for k in range(self.n_folds_in):
                     train_idx = self.folds_in[k][0]
-                    n_train = len(train_idx)
                     try:
                         self.bboxes_one_in[b][k].fit(X_intest[train_idx])
                     except:
                         print("Warning: cannot train OCC!")
 
-            # Pre-compute calibration scores for inliers using inlier models
-            scores_caltest = np.zeros((self.num_boxes_one_in,X_intest.shape[0]))
+            # Train the binary classification models
+            for b in range(self.num_boxes_two):
+                for k in range(self.n_folds_in):
+                    train_idx = self.folds_in[k][0]
+                    X_train = np.concatenate([X_intest[train_idx], self.X_out],0)
+                    Y_train = np.concatenate([[0]*len(train_idx), [1]*self.X_out.shape[0]])
+                    try:
+                        self.bboxes_two[b][k].fit(X_train, Y_train)
+                    except:
+                        print("Warning: cannot train OCC!")
+            
+            # Initialize calibration scores for inliers using all models
+            num_boxes = self.num_boxes_one_in + self.num_boxes_two
+            scores_caltest = np.zeros((num_boxes,X_intest.shape[0]))
+
+            # Compute calibration scores for inliers using one-class inlier models
             for b in range(self.num_boxes_one_in):
                 for k in range(self.n_folds_in):
                     cal_idx = self.folds_in[k][1]
-                    n_cal = len(cal_idx)
                     try:
                         scores_caltest[b,cal_idx] = self.bboxes_one_in[b][k].score_samples(X_intest[cal_idx])
                     except:
                         scores_caltest[b,cal_idx] = 1
                     scores_caltest[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
 
-            # Pre-compute calibration scores for outliers using inliers models
-            self.scores_inout_calib_one = np.zeros((self.num_boxes_one_in,self.n_folds_in,self.X_out.shape[0]))
+            # Compute calibration scores for inliers using binary models
+            for b2 in range(self.num_boxes_two):
+                b = b2 + self.num_boxes_one_in
+                for k in range(self.n_folds_in):
+                    cal_idx = self.folds_in[k][1]
+                    try:
+                        scores_caltest[b,cal_idx] = self.bboxes_two[b2][k].predict_proba(X_intest[cal_idx])[:,0]
+                    except:
+                        scores_caltest[b,cal_idx] = 1
+                    scores_caltest[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
+
+            # Initialize calibration scores for outliers using all inlier models
+            scores_out = np.zeros((num_boxes,self.n_folds_in,self.X_out.shape[0]))
+
+            # Compute calibration scores for outliers using one-class inliers models
             for b in range(self.num_boxes_one_in):
                 for k in range(self.n_folds_in):
                     try:
-                        self.scores_inout_calib_one[b,k] = self.bboxes_one_in[b][k].score_samples(self.X_out)
+                        scores_out[b,k] = self.bboxes_one_in[b][k].score_samples(self.X_out)
                     except:
-                        self.scores_inout_calib_one[b,k] = 1
-                    self.scores_inout_calib_one[b,k] += np.random.normal(loc=0, scale=1e-6, size=(self.X_out.shape[0],))
+                        scores_out[b,k] = 1
+                    scores_out[b,k] += np.random.normal(loc=0, scale=1e-6, size=(self.X_out.shape[0],))
 
+            # Compute calibration scores for outliers using binary models
+            for b2 in range(self.num_boxes_two):
+                b = b2 + self.num_boxes_one_in
+                for k in range(self.n_folds_in):
+                    try:
+                        scores_out[b,k] = self.bboxes_two[b2][k].predict_proba(self.X_out)[:,0]
+                    except:
+                        scores_out[b,k] = 1
+                    scores_out[b,k] += np.random.normal(loc=0, scale=1e-6, size=(self.X_out.shape[0],))
 
             # Estimate the performance of each model
-            score_contrast = np.zeros((self.num_boxes_one_in,))
-            for b in range(self.num_boxes_one_in):
+            score_contrast = np.zeros((num_boxes,))
+            for b in range(num_boxes):
                 # Change the direction of the scores, if necessary
                 if self.tuning:
                     # Large score <-> large p-value
                     # We expect the outliers should have smaller scores
                     # Concatenate conformity scores for inlier calibration data and test point
-                    median_out = np.median(self.scores_inout_calib_one[b])
+                    median_out = np.median(scores_out[b])
                     median_caltest = np.median(scores_caltest[b])
                     if median_caltest < median_out:
                         scores_caltest[b] = - scores_caltest[b]
-                        self.scores_inout_calib_one[b] = - self.scores_inout_calib_one[b]
+                        scores_out[b] = - scores_out[b]
                 # Compute score contrast
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     for k in range(self.n_folds_in):
                         cal_idx = self.folds_in[k][1]
-                        scores_out = self.scores_inout_calib_one[b,k]
-                        score_contrast[b] += ranksums(scores_caltest[b][cal_idx], scores_out)[0]
+                        score_contrast[b] += ranksums(scores_caltest[b][cal_idx], scores_out[b,k])[0]
 
             # Pick the best OCC model
             b_star = np.argmax(score_contrast)
@@ -164,7 +200,6 @@ class IntegrativeConformal:
             # Compute the preliminary p-values using the best inlier model
             pvals = conformalize_scores(scores_caltest[b_star], scores_caltest[b_star], offset=0)
 
-            # TODO: make sure this is correct
             return pvals
 
         def _calibrate_out():
@@ -258,148 +293,6 @@ class IntegrativeConformal:
         else:
             return pvals
 
-
-        # num_boxes_in = self.num_boxes_one + self.num_boxes_two
-        # num_boxes_out = self.num_boxes_one_out + self.num_boxes_two
-
-        # # Initialize containers for
-        # scores_in_test = np.zeros((n_test,num_boxes))
-        # scores_out_test = np.zeros((n_test,num_boxes_out))
-
-        # # Compute conformity scores for test data
-        # for b in range(self.num_boxes_one):
-        #     try:
-        #         scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
-        #     except:
-        #         scores_in_test[:,b] = 1
-        #     scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
-
-        # for b in range(self.num_boxes_one_out):
-        #     try:
-        #         scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
-        #     except:
-        #         scores_out_test[:,b] = 1
-        #     scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
-        # for b in range(self.num_boxes_two):
-        #     b_tot = b + self.num_boxes_one
-        #     try:
-        #         scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
-        #     except:
-        #         scores_in_test[:,b_tot] = 1
-        #     scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
-        #     try:
-        #         scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
-        #     except:
-        #         scores_out_test[:,b_tot] = 1
-        #     scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
-
-        # def compute_pvalue(score_in_test, score_out_test):
-        #     pvals_0 = self._calibrate_in(score_in_test)
-        #     if self.ratio:
-        #         pvals_1 = self._calibrate_out(score_out_test)
-        #     else:
-        #         pvals_1 = np.ones((len(pvals_0),))
-        #     scores = pvals_0 / pvals_1
-        #     # Compute final conformal p-value
-        #     pvals = conformalize_scores(scores, scores, offset=0)
-        #     return pvals[-1], pvals_0[-1], pvals_1[-1]
-
-
-
-    def _calibrate_in(self, score_test):
-        n_calib_in = self.scores_in_calib_one.shape[1]
-        n_calib_out = self.scores_out_calib_one.shape[1]
-        num_boxes = self.num_boxes_one + self.num_boxes_two
-        scores = np.zeros((num_boxes,n_calib_in+1))
-        scores_out = np.zeros((num_boxes,n_calib_out))
-        score_contrast = np.zeros((num_boxes,))
-
-        for b in range(self.num_boxes_one):
-            scores_out[b] = self.scores_inout_calib_one[b]
-
-            # Concatenate conformity scores for inlier calibration data and test point
-            scores[b] = np.append(self.scores_in_calib_one[b], score_test[b])
-
-            if self.tuning:
-                # Large score <-> large p-value
-                # We expect the outliers should have smaller scores
-                median_out = np.median(scores_out[b])
-                median_in = np.median(scores[b])
-                if median_in < median_out:
-                    scores[b] = -scores[b]
-                    scores_out[b] = -scores_out[b]
-
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                score_contrast[b] = ranksums(scores[b], scores_out[b])[0]
-
-        for b in range(self.num_boxes_two):
-            b_tot = b + self.num_boxes_one
-            scores_out[b_tot] = self.scores_out_calib_two[b]
-            # Concatenate conformity scores for inlier calibration data and test point
-            scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                score_contrast_new = ranksums(scores[b_tot], scores_out[b_tot])[0]
-            if np.isnan(score_contrast_new):
-                score_contrast_new = -np.inf
-            score_contrast[b_tot] = score_contrast_new
-
-        # Pick the best model
-        b_star = np.argmax(score_contrast)
-        scores_star = scores[b_star]
-
-        # Compute conformal p-values using the scores from the best model
-        pvals = conformalize_scores(scores_star, scores_star, offset=0)
-        return pvals
-
-    def _calibrate_out(self, score_test):
-        n_calib_in = self.scores_in_calib_one.shape[1]
-        n_calib_out = self.scores_out_calib_one.shape[1]
-        num_boxes = self.num_boxes_one_out + self.num_boxes_two
-        scores = np.zeros((num_boxes,n_calib_in+1))
-        scores_cal = np.zeros((num_boxes,n_calib_out))
-        score_contrast = np.zeros((num_boxes,))
-
-        for b in range(self.num_boxes_one_out):
-            scores_cal[b] = self.scores_out_calib_one[b]
-
-            # Concatenate conformity scores based on outlier model for inlier calibration data and test point
-            scores[b] = np.append(self.scores_outin_calib_one[b], score_test[b])
-
-            if self.tuning:
-                # Large score <-> large p-value
-                # We expect the inliers should have smaller scores
-                median_out = np.median(scores_cal[b])
-                median_in = np.median(scores[b])
-                if median_in > median_out:
-                    scores[b] = -scores[b]
-                    scores_cal[b] = -scores_cal[b]
-
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                score_contrast[b] = ranksums(scores_cal[b], scores[b])[0]
-
-        for b in range(self.num_boxes_two):
-            b_tot = b + self.num_boxes_one
-            scores_cal[b_tot] = self.scores_out_calib_two[b]
-            # Concatenate conformity scores for inlier calibration data and test point
-            scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                score_contrast_new = ranksums(scores_cal[b_tot], scores[b_tot])[0]
-            if np.isnan(score_contrast_new):
-                score_contrast_new = -np.inf
-            score_contrast[b_tot] = score_contrast_new
-
-        # Pick the best model
-        b_star = np.argmax(score_contrast)
-        scores_star = scores[b_star]
-        scores_cal_star = scores_cal[b_star]
-
-        # Compute conformal p-values
-        pvals = conformalize_scores(scores_cal_star, scores_star, offset=1)
-        return pvals
 
 
 class BinaryConformal:
