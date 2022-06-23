@@ -8,7 +8,9 @@ plot.3 <- FALSE
 plot.4 <- FALSE
 plot.5 <- FALSE
 plot.6 <- FALSE
-plot.7 <- TRUE
+plot.7 <- FALSE
+plot.8 <- FALSE
+plot.9 <- TRUE
 
 #############
 ## Setup 1 ##
@@ -511,9 +513,9 @@ if(plot.6) {
 
     method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
     method.labels <- c("Integrative", "OCC (ensemble)", "Binary (ensemble)", "OCC (naive)", "Binary (naive)")
-    color.scale <- c("darkviolet", "deeppink", "slateblue", "red", "blue", "darkgreen", "green")
+    color.scale <- c("darkviolet", "red", "blue", "darkgreen", "green")
     shape.scale <- c(8, 17, 15, 3, 1, 1)
-    alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
+    alpha.scale <- c(1, 0.5, 0.5)
 
     plot.fdr <- FALSE
 
@@ -628,5 +630,176 @@ if(plot.7) {
         ylab("") +
         theme_bw()
     pp %>% ggsave(file=sprintf("figures/experiment_corr_1.pdf"), width=5.5, height=2.5, units="in")
+
+}
+
+###################
+## Setup 8 (CV+) ##
+###################
+
+
+if(plot.8) {
+
+    idir <- "results_hpc/setup_cv1/"
+    ifile.list <- list.files(idir)
+
+    results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
+        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+    }))
+
+    plot.fdr <- FALSE
+
+    if(plot.fdr) {
+        results <- results.raw %>%
+            mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
+        metric.values <- c("Power", "TypeI")
+        metric.labels <- c("Power", "FDR")
+    } else {
+        results <- results.raw %>%
+            mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
+        metric.values <- c("Power", "TypeI")
+        metric.labels <- c("TPR", "FPR")
+    }
+    
+    method.values <- c("Ensemble (CV+)", "Ensemble (split)", "One-Class (CV+)", "Binary (CV+)")
+    method.labels <- c("Integrative (TCV+)", "Integrative", "One-Class (oracle, CV+)", "Binary (oracle, CV+)")
+    color.scale <- c("#da00da", "darkviolet", "red", "blue", "darkgreen", "green")
+    shape.scale <- c(5, 8, 3, 1, 1)
+    alpha.scale <- c(1, 1, 0.5, 0.5)
+
+    alpha.nominal <- 0.1
+    df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+
+    results.fdr.models <- results %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
+
+    results.fdr.oracle <- results %>%
+        filter(Method %in% c("Binary (CV+)", "One-Class (CV+)")) %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Alpha) %>%
+        summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
+                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
+        select(-idx.oracle)
+  
+    df <- results.fdr.models %>%
+        filter(Method %in% c("Ensemble (CV+)", "Ensemble (split)")) %>%
+        rbind(results.fdr.oracle)
+    results.fdr.mean <- df %>%
+        gather(Power, TypeI, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se)
+    results.fdr.se <- df %>%
+        gather(Power.se, TypeI.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI) %>%
+        mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric))
+    results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
+        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+
+    pp <- results.fdr %>%
+        filter(Data=="circles-mixed", n>10, p==1000, Alpha==alpha.nominal) %>%
+        filter(Method %in% method.values) %>%
+        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        ggplot(aes(x=n, y=Mean, color=Method, shape=Method, alpha=Method)) +
+        geom_point() +
+        geom_line() +
+#        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        facet_grid(Metric~Purity) +
+        scale_x_log10() +
+        scale_color_manual(values=color.scale) +
+        scale_shape_manual(values=shape.scale) +
+        scale_alpha_manual(values=alpha.scale) +
+        xlab("Sample size") +
+        ylab("") +
+        theme_bw()
+    pp %>% ggsave(file=sprintf("figures/experiment_cv_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
+
+}
+
+
+if(plot.9) {
+
+    idir <- "results_hpc/setup_cv2/"
+    ifile.list <- list.files(idir)
+
+    results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
+        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+    }))
+
+    plot.fdr <- TRUE
+
+    if(plot.fdr) {
+        results <- results.raw %>%
+            mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
+        metric.values <- c("Power", "TypeI")
+        metric.labels <- c("Power", "FDR")
+    } else {
+        results <- results.raw %>%
+            mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
+        metric.values <- c("Power", "TypeI")
+        metric.labels <- c("TPR", "FPR")
+    }
+    
+    method.values <- c("Ensemble (CV+)", "Ensemble (split)", "One-Class (CV+)", "Binary (CV+)")
+    method.labels <- c("Integrative (TCV+)", "Integrative", "One-Class (oracle, CV+)", "Binary (oracle, CV+)")
+    color.scale <- c("#da00da", "darkviolet", "red", "blue", "darkgreen", "green")
+    shape.scale <- c(5, 8, 3, 1, 1)
+    alpha.scale <- c(1, 1, 0.5, 0.5)
+
+    alpha.nominal <- 0.1
+    df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+
+    results.fdr.models <- results %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
+
+    results.fdr.oracle <- results %>%
+        filter(Method %in% c("Binary (CV+)", "One-Class (CV+)")) %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
+        group_by(Setup, Data, n, p, Signal, Purity, Method, Alpha) %>%
+        summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
+                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
+        select(-idx.oracle)
+  
+    df <- results.fdr.models %>%
+        filter(Method %in% c("Ensemble (CV+)", "Ensemble (split)")) %>%
+        rbind(results.fdr.oracle)
+    results.fdr.mean <- df %>%
+        gather(Power, TypeI, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se)
+    results.fdr.se <- df %>%
+        gather(Power.se, TypeI.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI) %>%
+        mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric))
+    results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
+        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+
+    pp <- results.fdr %>%
+        filter(Data=="binomial", n>10, p==100, Alpha==alpha.nominal) %>%
+                                        #    filter(Metric=="Power") %>%
+        filter(Method %in% method.values) %>%
+        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        ggplot(aes(x=n, y=Mean, color=Method, shape=Method, alpha=Method)) +
+        geom_point() +
+        geom_line() +
+#        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        facet_grid(Metric~Purity) +
+        scale_x_log10() +
+        scale_color_manual(values=color.scale) +
+        scale_shape_manual(values=shape.scale) +
+        scale_alpha_manual(values=alpha.scale) +
+        xlab("Sample size") +
+        ylab("") +
+        theme_bw()
+    pp %>% ggsave(file=sprintf("figures/experiment_binomial_cv_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
 
 }
