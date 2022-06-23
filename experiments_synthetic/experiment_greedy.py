@@ -46,7 +46,7 @@ class DataSet:
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -82,14 +82,38 @@ alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
 # List of possible one-class classifiers with desired hyper-parameters
+dict_oneclass_classifiers = {
+    'LOF': LocalOutlierFactor(novelty=True),
+    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
+    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
+    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3)
+}
+
+# Define list of possible two-class classifiers with desired hyper-parameters
+dict_binary_classifiers = {
+    'KNN': KNeighborsClassifier(),
+    'SVC': SVC(probability=True),
+    'NB' : GaussianNB(),
+    'MLP': MLPClassifier(max_iter=500, random_state=random_state)
+}
+
+# List of one-class classifiers for this experiment
 oneclass_classifiers = dict()
-for s in range(num_models):
+num_models_standard = np.minimum(4, num_models)
+for s in range(num_models_standard):
+    box_name = list(dict_oneclass_classifiers.keys())[s]
+    oneclass_classifiers[box_name] = dict_oneclass_classifiers[box_name]
+for s in range(np.maximum(0, num_models-num_models_standard)):
     box_name = "IF" + str(s)
     oneclass_classifiers[box_name] = IsolationForest(random_state=10000*random_state+s)
 
-# Define list of possible two-class classifiers with desired hyper-parameters
+# List of binary classifiers for this experiment
 binary_classifiers = dict()
-for s in range(num_models):
+num_models_standard = np.minimum(4, num_models)
+for s in range(num_models_standard):
+    box_name = list(dict_binary_classifiers.keys())[s]
+    binary_classifiers[box_name] = dict_binary_classifiers[box_name]
+for s in range(np.maximum(0, num_models-num_models_standard)):
     box_name = "RF" + str(s)
     binary_classifiers[box_name] = RandomForestClassifier(random_state=10000*random_state+s)
 
@@ -187,7 +211,6 @@ for r in range(num_repetitions):
     results_new = add_header(results_new)
     results_new["Repetition"] = r
     results = pd.concat([results, results_new])
-    pdb.set_trace()
     # Save results
     results.to_csv(outfile, index=False)
     print("\nResults written to {:s}\n".format(outfile))

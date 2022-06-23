@@ -9,14 +9,14 @@ if [[ $SETUP == 1 ]]; then
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
-  NUM_MODELS_LIST=(1 2 5 10 20 50 100)
+  NUM_MODELS_LIST=(1 2 3 4 5 10 20 50 100)
   SEED_LIST=$(seq 1 100)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-00:30:00                    # Time required (30 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
@@ -61,7 +61,7 @@ for SEED in $SEED_LIST; do
                 # Print order
                 echo $ORD
                 # Submit order
-                $ORD
+                #$ORD
                 # Run command now
                 #./$SCRIPT
               fi
