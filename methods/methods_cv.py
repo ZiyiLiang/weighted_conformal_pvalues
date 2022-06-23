@@ -20,7 +20,6 @@ class IntegrativeConformal:
         self.verbose = verbose
         self.progress = progress
         self.ratio = ratio
-        self.n_folds = n_folds
         self.X_in = X_in
         self.X_out = X_out
 
@@ -32,20 +31,19 @@ class IntegrativeConformal:
         if bboxes_two is None:
             bboxes_two = []
 
+        n_folds_in = int(np.maximum(2, np.minimum(n_folds, X_in.shape[0]/5)))
+        n_folds_out = int(np.maximum(2, np.minimum(n_folds, X_out.shape[0]/5)))
+        self.n_folds = np.minimum(n_folds_in, n_folds_out)
+
         # Split the inliers and placeholder test point into folds
         X_test_dummy = np.zeros((1,len(X_in[0])))
         X_intest = np.concatenate([X_in, X_test_dummy],0)
-        cv = KFold(n_splits=n_folds, random_state=random_state, shuffle=True)
+        cv = KFold(n_splits=self.n_folds, random_state=random_state, shuffle=True)
         self.folds_in = [(train_idx, cal_idx) for train_idx, cal_idx in cv.split(X_intest)]
-        self.n_folds_in = len(self.folds_in)
 
         # Split the outliers into folds
-        cv = KFold(n_splits=n_folds, random_state=random_state+1, shuffle=True)
+        cv = KFold(n_splits=self.n_folds, random_state=random_state+1, shuffle=True)
         self.folds_out = [(train_idx, cal_idx) for train_idx, cal_idx in cv.split(X_out)]
-        self.n_folds_out = len(self.folds_out)
-
-        # Pre-assign the test point to the last fold
-        self.test_fold_id = self.n_folds-1
 
         # Initialize the one-class models for outliers
         if bboxes_one_out is None:
@@ -57,7 +55,7 @@ class IntegrativeConformal:
         # Train the one-class models for outliers
         if self.ratio:
             for b in range(self.num_boxes_one_out):
-                for k in range(self.n_folds_out):
+                for k in range(self.n_folds):
                     train_idx = self.folds_out[k][0]
                     n_train = len(train_idx)
                     if self.verbose:
@@ -74,7 +72,7 @@ class IntegrativeConformal:
         # Pre-compute calibration scores for outliers using outlier models
         self.scores_out_calib_one = np.zeros((self.num_boxes_one_out,X_out.shape[0]))
         for b in range(self.num_boxes_one_out):
-            for k in range(self.n_folds_out):
+            for k in range(self.n_folds):
                 cal_idx = self.folds_out[k][1]
                 try:
                     self.scores_out_calib_one[b,cal_idx] = self.bboxes_one_out[b][k].score_samples(X_out[cal_idx])
@@ -83,9 +81,9 @@ class IntegrativeConformal:
                 self.scores_out_calib_one[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
 
         # Pre-compute calibration scores for inliers using outlier models
-        self.scores_outin_calib_one = np.zeros((self.num_boxes_one_out,self.n_folds_out,X_in.shape[0]))
+        self.scores_outin_calib_one = np.zeros((self.num_boxes_one_out,self.n_folds,X_in.shape[0]))
         for b in range(self.num_boxes_one_out):
-            for k in range(self.n_folds_out):
+            for k in range(self.n_folds):
                 try:
                     self.scores_outin_calib_one[b,k] = self.bboxes_one_out[b][k].score_samples(X_in)
                 except:
@@ -109,7 +107,7 @@ class IntegrativeConformal:
 
             # Train the one-class models for inliers
             for b in range(self.num_boxes_one_in):
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     train_idx = self.folds_in[k][0]
                     try:
                         self.bboxes_one_in[b][k].fit(X_intest[train_idx])
@@ -118,7 +116,7 @@ class IntegrativeConformal:
 
             # Train the binary classification models
             for b in range(self.num_boxes_two):
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     train_idx_in = self.folds_in[k][0]
                     train_idx_out = self.folds_out[k][0]
                     X_train = np.concatenate([X_intest[train_idx_in], self.X_out[train_idx_out]],0)
@@ -134,7 +132,7 @@ class IntegrativeConformal:
 
             # Compute calibration scores for inliers using one-class inlier models
             for b in range(self.num_boxes_one_in):
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     cal_idx = self.folds_in[k][1]
                     try:
                         scores_caltest[b,cal_idx] = self.bboxes_one_in[b][k].score_samples(X_intest[cal_idx])
@@ -145,7 +143,7 @@ class IntegrativeConformal:
             # Compute calibration scores for inliers using binary models
             for b2 in range(self.num_boxes_two):
                 b = b2 + self.num_boxes_one_in
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     cal_idx = self.folds_in[k][1]
                     try:
                         scores_caltest[b,cal_idx] = self.bboxes_two[b2][k].predict_proba(X_intest[cal_idx])[:,0]
@@ -154,11 +152,11 @@ class IntegrativeConformal:
                     scores_caltest[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
 
             # Initialize calibration scores for outliers using all inlier models
-            scores_out = np.zeros((num_boxes,self.n_folds_in,self.X_out.shape[0]))
+            scores_out = np.zeros((num_boxes,self.n_folds,self.X_out.shape[0]))
 
             # Compute calibration scores for outliers using one-class inliers models
             for b in range(self.num_boxes_one_in):
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     try:
                         scores_out[b,k] = self.bboxes_one_in[b][k].score_samples(self.X_out)
                     except:
@@ -168,7 +166,7 @@ class IntegrativeConformal:
             # Compute calibration scores for outliers using binary models
             for b2 in range(self.num_boxes_two):
                 b = b2 + self.num_boxes_one_in
-                for k in range(self.n_folds_in):
+                for k in range(self.n_folds):
                     train_idx_out = self.folds_out[k][0]
                     cal_idx_out = self.folds_out[k][1]
                     try:
@@ -194,7 +192,7 @@ class IntegrativeConformal:
                 # Compute score contrast
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    for k in range(self.n_folds_in):
+                    for k in range(self.n_folds):
                         cal_idx = self.folds_in[k][1]
                         score_contrast[b] += ranksums(scores_caltest[b][cal_idx], scores_out[b,k])[0]
 
@@ -208,7 +206,7 @@ class IntegrativeConformal:
 
         def _calibrate_out():
             # Compute scores for test point using outlier models
-            scores_test = np.zeros((self.num_boxes_one_out,self.n_folds_out))
+            scores_test = np.zeros((self.num_boxes_one_out,self.n_folds))
             for b in range(self.num_boxes_one_out):
                 for k in range(len(self.folds_out)):
                     try:
@@ -240,7 +238,7 @@ class IntegrativeConformal:
                 # Compute score contrast
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    for k in range(self.n_folds_out):
+                    for k in range(self.n_folds):
                         fold = self.folds_out[k]
                         cal_idx = fold[1]
                         scores_cal = self.scores_out_calib_one[b][cal_idx]
@@ -255,7 +253,7 @@ class IntegrativeConformal:
             pvals = -np.ones((self.X_in.shape[0]+1,))
             for i in range(len(pvals)):
                 scores_test_tmp = -np.ones((self.X_out.shape[0],))
-                for k in range(self.n_folds_out):
+                for k in range(self.n_folds):
                     fold = self.folds_out[k][1]
                     scores_test_tmp[fold] = scores_intest[k][i]
                             
