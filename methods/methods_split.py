@@ -234,50 +234,50 @@ class IntegrativeConformal:
         pvals = conformalize_scores(scores_cal_star, scores_star, offset=1)
         return pvals
 
+    def _compute_pvalue(self, score_in_test, score_out_test):
+        pvals_0 = self._calibrate_in(score_in_test)
+        if self.ratio:
+            pvals_1 = self._calibrate_out(score_out_test)
+        else:
+            pvals_1 = np.ones((len(pvals_0),))
+        scores = pvals_0 / pvals_1
+        # Compute final conformal p-value
+        pvals = conformalize_scores(scores, scores, offset=0)
+        return pvals[-1], pvals_0[-1], pvals_1[-1]
+
     def compute_pvalues(self, X_test, return_prepvals=False):
         n_test = X_test.shape[0]
         num_boxes = self.num_boxes_one + self.num_boxes_two
         num_boxes_out = self.num_boxes_one_out + self.num_boxes_two
-        scores_in_test = np.zeros((n_test,num_boxes))
-        scores_out_test = np.zeros((n_test,num_boxes_out))
+        self.scores_in_test = np.zeros((n_test,num_boxes))
+        self.scores_out_test = np.zeros((n_test,num_boxes_out))
 
         # Compute conformity scores for test data
         for b in range(self.num_boxes_one):
             try:
-                scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
+                self.scores_in_test[:,b] = self.bboxes_one_in[b].score_samples(X_test)
             except:
-                scores_in_test[:,b] = 1
-            scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b].shape)
+                self.scores_in_test[:,b] = 1
+            self.scores_in_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_test[:,b].shape)
 
         for b in range(self.num_boxes_one_out):
             try:
-                scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
+                self.scores_out_test[:,b] = self.bboxes_one_out[b].score_samples(X_test)
             except:
-                scores_out_test[:,b] = 1
-            scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b].shape)
+                self.scores_out_test[:,b] = 1
+            self.scores_out_test[:,b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_test[:,b].shape)
         for b in range(self.num_boxes_two):
             b_tot = b + self.num_boxes_one
             try:
-                scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+                self.scores_in_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
             except:
-                scores_in_test[:,b_tot] = 1
-            scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_in_test[:,b_tot].shape)
+                self.scores_in_test[:,b_tot] = 1
+            self.scores_in_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=self.scores_in_test[:,b_tot].shape)
             try:
-                scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
+                self.scores_out_test[:,b_tot] = self.bboxes_two[b].predict_proba(X_test)[:,0]
             except:
-                scores_out_test[:,b_tot] = 1
-            scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=scores_out_test[:,b_tot].shape)
-
-        def compute_pvalue(score_in_test, score_out_test):
-            pvals_0 = self._calibrate_in(score_in_test)
-            if self.ratio:
-                pvals_1 = self._calibrate_out(score_out_test)
-            else:
-                pvals_1 = np.ones((len(pvals_0),))
-            scores = pvals_0 / pvals_1
-            # Compute final conformal p-value
-            pvals = conformalize_scores(scores, scores, offset=0)
-            return pvals[-1], pvals_0[-1], pvals_1[-1]
+                self.scores_out_test[:,b_tot] = 1
+            self.scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_test[:,b_tot].shape)
 
         if self.progress:
             iterator = tqdm(range(n_test))
@@ -288,7 +288,7 @@ class IntegrativeConformal:
         pvals_0 = -np.ones((n_test,))
         pvals_1 = -np.ones((n_test,))
         for i in iterator:
-            pvals[i], pvals_0[i], pvals_1[i] = compute_pvalue(scores_in_test[i], scores_out_test[i])
+            pvals[i], pvals_0[i], pvals_1[i] = self._compute_pvalue(self.scores_in_test[i], self.scores_out_test[i])
 
         if return_prepvals:
             return pvals, pvals_0, pvals_1
