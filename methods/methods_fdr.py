@@ -19,7 +19,7 @@ class IntegrativeConformalFDR:
     def _estimate_R_tilde_single(self, i, j, alpha):
         n_test = self.ic.scores_in_test.shape[0]
         n_cal = self.ic.scores_in_calib_one.shape[1]
-        assert( (j>=0) and (j<n_cal))
+        assert( (j>=0) and (j<=n_cal))
         # Extract the conformity scores for the i-th test point
         scores_in_test = self.ic.scores_in_test[i,None].T
         scores_in_test_one = scores_in_test[0:self.ic.num_boxes_one]
@@ -58,13 +58,14 @@ class IntegrativeConformalFDR:
         return R
 
     def _estimate_R_tilde(self, i, alpha, J_max=None, loo='median'):
+        n_cal = self.ic.scores_in_calib_one.shape[1]
         n_test = self.ic.scores_in_test.shape[0]
         if J_max is None:
             J_max = n_test
         else:
-            J_max = np.minimum(J_max,n_test)
+            J_max = np.minimum(J_max,n_cal+1)
         R_tilde_tmp = -np.ones((J_max,))
-        j_seq = np.random.choice(n_test, size=J_max, replace=False)
+        j_seq = np.random.choice(n_cal+1, size=J_max, replace=False)
         for j in range(J_max):
             R_tilde_tmp[j] = self._estimate_R_tilde_single(i, j_seq[j], alpha)
         if loo=='median':
@@ -103,7 +104,8 @@ class IntegrativeConformalFDR:
             R = np.sum(rejected_fake)
             R_list_support = np.array([i for i in R_plus if epsilon[i] <= R / R_tilde[i]])
             R_list = np.array([False]*n)
-            R_list[R_list_support] = True
+            if len(R_list_support)>0:
+                R_list[R_list_support] = True
             return R_list, True
 
         return None

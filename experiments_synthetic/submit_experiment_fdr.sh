@@ -10,7 +10,7 @@ if [[ $SETUP == 1 ]]; then
   A_LIST=(0.7)
   PURITY_LIST=(0.5) # 0.75 0.9)
   ALPHA_LIST=(0.1)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 1 5)
 
 fi
 
@@ -61,7 +61,7 @@ for SEED in $SEED_LIST; do
                 # Print order
                 echo $ORD
                 # Submit order
-                #$ORD
+                $ORD
                 # Run command now
                 #./$SCRIPT
               fi
