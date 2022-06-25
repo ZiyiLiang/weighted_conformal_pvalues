@@ -100,6 +100,7 @@ def add_header(df):
     df["Purity"] = purity
     df["Alpha"] = alpha
     df["Seed"] = random_state
+    df["n_test"] = n_test
     return df
 
 #########################
