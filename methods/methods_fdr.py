@@ -17,10 +17,9 @@ class IntegrativeConformalFDR:
         self.ic = ic
 
     def _estimate_R_tilde_single(self, i, j, alpha):
-        assert(j>=-1)
         n_test = self.ic.scores_in_test.shape[0]
         n_cal = self.ic.scores_in_calib_one.shape[1]
-        assert( (j>=0) and (j<=n_cal))
+        assert( (j>=-1) and (j<=n_cal))
         # Extract the conformity scores for the i-th test point
         scores_in_test = self.ic.scores_in_test[i,None].T
         scores_in_test_one = scores_in_test[0:self.ic.num_boxes_one]

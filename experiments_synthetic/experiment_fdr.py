@@ -181,7 +181,7 @@ def run_experiment(dataset, random_state):
     # Apply the regular BH
     reject_bh = icfdr.filter_fdr_bh(X_test, alpha)
     fdp_bh, power_bh = eval_discoveries(reject_bh, Y_test)
-    results_tmp = pd.DataFrame({"Method":["BH"], "FDP":[fdp_bh], "Power":[power_bh], "Pruned":[False]})
+    results_tmp = pd.DataFrame({"Method":["BH"], "FDP":[fdp_bh], "Power":[power_bh], "LOO":["none"], "Pruned":[False]})
     results = pd.concat([results, results_tmp])
 
     return results
