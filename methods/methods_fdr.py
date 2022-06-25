@@ -35,9 +35,9 @@ class IntegrativeConformalFDR:
         scores_outin_caltest_one = np.concatenate([scores_outin_cal_one, scores_out_test_one],1).T
         # Pick the new calibration scores
         if j == -1:
-            new_scores_in_cal_one = scores_in_caltest_one
-            new_scores_in_cal_two = scores_in_caltest_two
-            new_scores_outin_cal_one = scores_outin_caltest_one            
+            new_scores_in_cal_one = scores_in_caltest_one.T
+            new_scores_in_cal_two = scores_in_caltest_two.T
+            new_scores_outin_cal_one = scores_outin_caltest_one.T
         else:
             new_scores_in_cal_one = np.concatenate([scores_in_caltest_one[:j],scores_in_caltest_one[(j+1):]],0).T
             new_scores_in_cal_two = np.concatenate([scores_in_caltest_two[:j],scores_in_caltest_two[(j+1):]],0).T

@@ -28,7 +28,7 @@ from util_experiments import eval_pvalues
 # Experiment parameters #
 #########################
 
-if True: # Input parameters
+if False: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -100,6 +100,7 @@ def add_header(df):
     df["Purity"] = purity
     df["Alpha"] = alpha
     df["Seed"] = random_state
+    df["n_test"] = n_test
     return df
 
 #########################
