@@ -10,7 +10,8 @@ plot.5 <- FALSE
 plot.6 <- FALSE
 plot.7 <- FALSE
 plot.8 <- FALSE
-plot.9 <- TRUE
+plot.9 <- FALSE
+plot.10 <- TRUE
 
 #############
 ## Setup 1 ##
@@ -802,4 +803,75 @@ if(plot.9) {
         theme_bw()
     pp %>% ggsave(file=sprintf("figures/experiment_binomial_cv_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
 
+}
+
+if(plot.10) {
+
+    idir <- "results_hpc/setup_fdr1/"
+    ifile.list <- list.files(idir)
+
+    results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
+        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+    }))
+
+    results <- results.raw %>%
+        group_by(Setup, Data, p, Signal, Purity, Alpha, n, Method) %>%
+        summarise(FDR.se=2*sd(FDP)/sqrt(n()), Power.se=2*sd(Power)/sqrt(n()), FDR=mean(FDP), Power=mean(Power))
+    
+    ## method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
+    ## method.labels <- c("Integrative", "OCC (ensemble)", "Binary (ensemble)", "OCC (oracle)", "Binary (oracle)")
+    ## color.scale <- c("darkviolet", "deeppink", "slateblue", "red", "blue", "darkgreen", "green")
+    ## shape.scale <- c(8, 17, 15, 3, 1, 1)
+    ## alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
+
+    ## plot.fdr <- FALSE
+
+    ## if(plot.fdr) {
+    ##     results <- results.raw %>%
+    ##         mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
+    ## } else {
+    ##     results <- results.raw %>%
+    ##         mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
+    ##     metric.values <- c("Power", "TypeI")
+    ##     metric.labels <- c("TPR", "FPR")
+    ## }
+
+    metric.values <- c("Power", "FDR")
+    metric.labels <- c("Power", "FDR")
+
+    alpha.nominal <- 0.1
+    df.nominal <- tibble(Metric="FDR", Mean=alpha.nominal) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+  
+    df.mean <- results %>%
+        gather(Power, FDR, key="Metric", value="Mean") %>%
+        select(-Power.se, -FDR.se)
+    df.se <- results %>%
+        gather(Power.se, FDR.se, key="Metric", value="SE") %>%
+        select(-Power, -FDR) %>%
+        mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
+               Metric = ifelse(Metric=="FDR.se", "FDR", Metric))
+    df <- df.mean %>% inner_join(df.se) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
+        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+
+
+    pp <- df %>%
+        filter(Data=="circles-mixed", Alpha==alpha.nominal) %>%
+#        filter(Method %in% method.values) %>%
+#        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
+        geom_point() +
+        geom_line() +
+        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        facet_grid(Metric~Purity) +
+        scale_x_log10(breaks=c(30, 300, 3000)) +
+    #    scale_color_manual(values=color.scale) +
+    #    scale_shape_manual(values=shape.scale) +
+    #    scale_alpha_manual(values=alpha.scale) +
+        xlab("Sample size") +
+        ylab("") +
+        theme_bw()
+    pp %>% ggsave(file="figures/experiment_fdr_1.pdf", width=6.5, height=3, units="in")
 }

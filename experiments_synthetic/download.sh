@@ -13,4 +13,7 @@ mkdir -p results_hpc
 
 
 #rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_cv1/* results_hpc/setup_cv1/
-rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_cv2/* results_hpc/setup_cv2/
+#rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_cv2/* results_hpc/setup_cv2/
+
+rsync -auv sesia@discovery.usc.edu:/home1/sesia/Workspace/weighted_conformal_pvalues/experiments_synthetic/results/setup_fdr1/* results_hpc/setup_fdr1/
+

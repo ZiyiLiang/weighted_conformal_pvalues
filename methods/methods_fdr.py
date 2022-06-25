@@ -17,6 +17,7 @@ class IntegrativeConformalFDR:
         self.ic = ic
 
     def _estimate_R_tilde_single(self, i, j, alpha):
+        assert(j>=-1)
         n_test = self.ic.scores_in_test.shape[0]
         n_cal = self.ic.scores_in_calib_one.shape[1]
         assert( (j>=0) and (j<=n_cal))
@@ -33,21 +34,21 @@ class IntegrativeConformalFDR:
         scores_in_caltest_one = np.concatenate([scores_in_cal_one, scores_in_test_one],1).T
         scores_in_caltest_two = np.concatenate([scores_in_cal_two, scores_in_test_two],1).T
         scores_outin_caltest_one = np.concatenate([scores_outin_cal_one, scores_out_test_one],1).T
-        # Pick a new test point (j-th element)
-        new_scores_in_test_one = scores_in_caltest_one[j]
-        new_scores_in_test_two = scores_in_caltest_two[j]
-        new_scores_out_test_one = scores_outin_caltest_one[j]
         # Pick the new calibration scores
-        new_scores_in_cal_one = np.concatenate([scores_in_caltest_one[:j],scores_in_caltest_one[(j+1):]],0).T
-        new_scores_in_cal_two = np.concatenate([scores_in_caltest_two[:j],scores_in_caltest_two[(j+1):]],0).T
-        new_scores_outin_cal_one = np.concatenate([scores_outin_caltest_one[:j],scores_outin_caltest_one[(j+1):]],0).T
+        if j == -1:
+            new_scores_in_cal_one = scores_in_caltest_one
+            new_scores_in_cal_two = scores_in_caltest_two
+            new_scores_outin_cal_one = scores_outin_caltest_one            
+        else:
+            new_scores_in_cal_one = np.concatenate([scores_in_caltest_one[:j],scores_in_caltest_one[(j+1):]],0).T
+            new_scores_in_cal_two = np.concatenate([scores_in_caltest_two[:j],scores_in_caltest_two[(j+1):]],0).T
+            new_scores_outin_cal_one = np.concatenate([scores_outin_caltest_one[:j],scores_outin_caltest_one[(j+1):]],0).T
+
         # Make a new copy of the integrative conformal inference method, with new randomly shuffled scores
         new_ic = copy.deepcopy(self.ic)
         new_ic.scores_in_calib_one = new_scores_in_cal_one
         new_ic.scores_in_calib_two = new_scores_in_cal_two
         new_ic.scores_outin_calib_one = new_scores_outin_cal_one
-        #new_ic.scores_in_test = np.concatenate([new_scores_in_test_one,new_scores_in_test_two],0)
-        #new_ic.scores_out_test = new_scores_out_test_one
         # Compute conformal p-values with the new perturbed scores
         pvals = np.zeros((n_test,))
         for k in range(n_test):
@@ -58,22 +59,25 @@ class IntegrativeConformalFDR:
         return R
 
     def _estimate_R_tilde(self, i, alpha, J_max=None, loo='median'):
-        n_cal = self.ic.scores_in_calib_one.shape[1]
-        n_test = self.ic.scores_in_test.shape[0]
-        if J_max is None:
-            J_max = n_test
+        if loo=='none':
+            R_tilde = self._estimate_R_tilde_single(i, -1, alpha)
         else:
-            J_max = np.minimum(J_max,n_cal+1)
-        R_tilde_tmp = -np.ones((J_max,))
-        j_seq = np.random.choice(n_cal+1, size=J_max, replace=False)
-        for j in range(J_max):
-            R_tilde_tmp[j] = self._estimate_R_tilde_single(i, j_seq[j], alpha)
-        if loo=='median':
-            R_tilde = np.median(R_tilde_tmp)
-        elif loo=='min':
-            R_tilde = np.min(R_tilde_tmp)
-        else:
-            print("Error: unknown estimation method {:s}".format(loo))
+            n_cal = self.ic.scores_in_calib_one.shape[1]
+            n_test = self.ic.scores_in_test.shape[0]
+            if J_max is None:
+                J_max = n_test
+            else:
+                J_max = np.minimum(J_max,n_cal+1)
+            R_tilde_tmp = -np.ones((J_max,))
+            j_seq = np.random.choice(n_cal+1, size=J_max, replace=False)
+            for j in range(J_max):
+                R_tilde_tmp[j] = self._estimate_R_tilde_single(i, j_seq[j], alpha)
+            if loo=='median':
+                R_tilde = np.median(R_tilde_tmp)
+            elif loo=='min':
+                R_tilde = np.min(R_tilde_tmp)
+            else:
+                print("Error: unknown estimation method {:s}".format(loo))
         return R_tilde
 
     def filter_fdr_conditional(self, X_test, alpha, J_max=None, loo='median'):

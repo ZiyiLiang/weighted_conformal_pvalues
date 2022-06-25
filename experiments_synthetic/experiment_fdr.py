@@ -159,12 +159,26 @@ def run_experiment(dataset, random_state):
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
 
     icfdr = IntegrativeConformalFDR(method)
-    reject_sel, pruned_sel = icfdr.filter_fdr_conditional(X_test, alpha, J_max=J_max)
+
+    # Apply the new method with no loo
+    reject_sel, pruned_sel = icfdr.filter_fdr_conditional(X_test, alpha, J_max=J_max, loo='none')
     fdp_sel, power_sel = eval_discoveries(reject_sel, Y_test)    
-    results_tmp = pd.DataFrame({"Method":["Selective"], "FDP":[fdp_sel], "Power":[power_sel], "Pruned":[pruned_sel]})
+    results_tmp = pd.DataFrame({"Method":["Selective"], "FDP":[fdp_sel], "Power":[power_sel], "LOO":['none'], "Pruned":[pruned_sel]})
     results = pd.concat([results, results_tmp])
 
+    # Apply the new method with 'median' loo
+    reject_sel, pruned_sel = icfdr.filter_fdr_conditional(X_test, alpha, J_max=J_max, loo='median')
+    fdp_sel, power_sel = eval_discoveries(reject_sel, Y_test)    
+    results_tmp = pd.DataFrame({"Method":["Selective"], "FDP":[fdp_sel], "Power":[power_sel], "LOO":['median'], "Pruned":[pruned_sel]})
+    results = pd.concat([results, results_tmp])
 
+    # Apply the new method with 'min' loo
+    reject_sel, pruned_sel = icfdr.filter_fdr_conditional(X_test, alpha, J_max=J_max, loo='min')
+    fdp_sel, power_sel = eval_discoveries(reject_sel, Y_test)    
+    results_tmp = pd.DataFrame({"Method":["Selective"], "FDP":[fdp_sel], "Power":[power_sel], "LOO":['min'], "Pruned":[pruned_sel]})
+    results = pd.concat([results, results_tmp])
+
+    # Apply the regular BH
     reject_bh = icfdr.filter_fdr_bh(X_test, alpha)
     fdp_bh, power_bh = eval_discoveries(reject_bh, Y_test)
     results_tmp = pd.DataFrame({"Method":["BH"], "FDP":[fdp_bh], "Power":[power_bh], "Pruned":[False]})
