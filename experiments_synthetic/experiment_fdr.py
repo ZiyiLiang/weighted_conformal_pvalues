@@ -28,7 +28,7 @@ from util_experiments import eval_pvalues
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
