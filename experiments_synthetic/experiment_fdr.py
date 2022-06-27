@@ -33,7 +33,7 @@ if True: # Input parameters
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
     model_num = 1
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         print("Error: incorrect number of parameters.")
         quit()
 
@@ -44,7 +44,8 @@ if True: # Input parameters
     a = float(sys.argv[5])
     purity = float(sys.argv[6])
     alpha = float(sys.argv[7])
-    random_state = int(sys.argv[8])
+    n_test = int(sys.argv[8])
+    random_state = int(sys.argv[9])
 
 else: # Default parameters
     setup = 1
@@ -54,11 +55,11 @@ else: # Default parameters
     a = 0.4
     purity = 0.5
     alpha = 0.1
+    n_test = 10
     random_state = 2022
 
 
 # Fixed experiment parameters
-n_test = 10
 purity_test = 0.5
 calib_size = 0.5
 num_repetitions = 2
@@ -86,7 +87,7 @@ binary_classifiers = {
 ###############
 # Output file #
 ###############
-outfile_prefix = "results/setup_fdr" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_purity" + str(purity) + "_alpha"+str(alpha) + "_seed" + str(random_state)
+outfile_prefix = "results/setup_fdr" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_purity" + str(purity) + "_alpha"+str(alpha) + "_ntest" + str(n_test) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
