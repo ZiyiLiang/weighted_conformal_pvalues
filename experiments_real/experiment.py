@@ -1,348 +1,319 @@
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import statistics as stats
 import matplotlib.pyplot as plt
+from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
+from scipy.io import arff, loadmat
+from sklearn.model_selection import train_test_split
 import pdb
 
+# Binary classifiers
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC, OneClassSVM
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
 
-import sys
-import os
+import os, sys
+sys.path.append("../methods")
 
-# if os.path.isdir('C:/Users/liang'):
-#     local_machine = 1
-#     print('running experiments on local machine')
-#     sys.stdout.flush()
-# else:
-#     local_machine = 0
-#     print('running experiments on virtual machine')
-#     sys.stdout.flush()
+from models import GaussianMixture, ConcentricCircles, ConcentricCirclesMixture, BinomialModel
+from methods_split import BinaryConformal, OneClassConformal, IntegrativeConformal
 
-
-# if local_machine:
-#     base_path = "C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/data/"
-# else:
-#     base_path = ''
-
-#if os.path.isdir('/mnt/c/users/liang'):
-if os.path.isdir('/home1/ziyilian'):
-    local_machine = 0
-    print('running experiments on virtual machine')
-    sys.stdout.flush()
-else:
-    local_machine = 1
-    print('running experiments on linux machine')
-    sys.stdout.flush()
-
-if local_machine:
-    base_path = "/mnt/c/users/liang/OneDrive/Desktop/CLRA/codes/realdata/data/"
-else:
-    base_path = '/home1/ziyilian/CLRA/realdata/data/'
-
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/code')
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/data')
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/related_resources/arc')
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/related_resources/cqr-comparison')
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/related_resources/cqr')
-# sys.path.append('C:/Users/liang/OneDrive/Desktop/CLRA/related_resources/conditional-conformal-pvalues')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/codes/realdata/code')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/codes/realdata/data')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/related_resources/arc')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/related_resources/cqr-comparison')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/related_resources/cqr')
-# sys.path.append('/mnt/c/users/liang/OneDrive/Desktop/CLRA/related_resources/conditional-conformal-pvalues')
-sys.path.append('/home1/ziyilian/CLRA/realdata/code')
-sys.path.append('/home1/ziyilian/CLRA/realdata/data')
-sys.path.append('/home1/ziyilian/CLRA/arc')
-sys.path.append('/home1/ziyilian/CLRA/cqr-comparison')
-sys.path.append('/home1/ziyilian/CLRA/cqr')
-sys.path.append('/home1/ziyilian/CLRA/conditional-conformal-pvalues')
+from util_experiments import eval_pvalues
 
 #########################
 # Experiment parameters #
 #########################
-from sklearn.base import clone
-from sklearn import svm
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 
-from outlier_dataset import get_data_is_outlier
+if True: # Input parameters
+    # Parse input arguments
+    print ('Number of arguments:', len(sys.argv), 'arguments.')
+    print ('Argument List:', str(sys.argv))
+    model_num = 1
+    if len(sys.argv) != 4:
+        print("Error: incorrect number of parameters.")
+        quit()
+    data_name = sys.argv[1]
+    n = int(sys.argv[2])
+    random_state = int(sys.argv[3])
 
-sys.path.append('../methods')
-from methods_experiment import oc, bc, clra
-
-
-num_train = 10
-num_test = 10
-purity = 0.9
-alpha = 0.1
-
-# Parse input arguments
-print ('Number of arguments:', len(sys.argv), 'arguments.')
-print ('Argument List:', str(sys.argv))
-print("====")
-print(len(sys.argv))
-if len(sys.argv) != 3:
-    print(sys.argv)
-    print("Error: incorrect number of parameters.")
-    quit()
-
-data_set_id = int(sys.argv[1])
-random_state = int(sys.argv[2])
-
-DATASET_LIST =  ["cover.mat",
-                 "creditcard.csv",
-                 "shuttle.mat",
-                 "mammography.mat",
-                 "pendigits.mat",
-                 "ALOI_withoutdupl.arff",
-                 "http.mat"
-                 ]
+else: # Default parameters
+    data_name = "musk"
+    n = 1000
+    random_state = 2022
 
 
-bc_methods = {
-    'BC': bc,
-    }
-oc_methods = {
-    'OCC': oc,
-    'CLRA': clra, 
-    }
-bc_bb = {
-    'RFC': RandomForestClassifier(),
-    'SVC': SVC(kernel='rbf', C=1, probability=True),
-    'MLP': MLPClassifier(),
-    'k-NN': KNeighborsClassifier(n_neighbors=3),
-    'QDA': QuadraticDiscriminantAnalysis()
-}
-contamination = 0.1
-oc_bb = {
-    'SVM': svm.OneClassSVM(nu=contamination, kernel="rbf"),
-    'ISF': IsolationForest(contamination=contamination, behaviour="new"),
-    'LOF': LocalOutlierFactor(novelty=True, contamination=contamination)
+# Fixed experiment parameters
+calib_size = 0.5
+alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
+num_repetitions = 2
+
+# List of possible one-class classifiers with desired hyper-parameters
+oneclass_classifiers = {
+    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3),
+    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
+    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
+    'IF': IsolationForest(random_state=random_state),
+    'LOF': LocalOutlierFactor(novelty=True)
 }
 
-dataset_name = DATASET_LIST[data_set_id]
-print("Dataset:\n  " + dataset_name)
-sys.stdout.flush()
+# Define list of possible two-class classifiers with desired hyper-parameters
+binary_classifiers = {
+    'RF': RandomForestClassifier(random_state=random_state),
+    'KNN': KNeighborsClassifier(),
+    'SVC': SVC(probability=True),
+    'NB' : GaussianNB(),
+    'QDA': QuadraticDiscriminantAnalysis(),
+    'MLP': MLPClassifier(max_iter=500, random_state=random_state)
+}
 
-dataset, is_outlier = get_data_is_outlier(dataset_name, base_path)
+####################################
+# Reduce the sample size if needed #
+####################################
+dataset = DataSet(data_name, random_state=0)
+n = np.minimum(n, dataset.n)
 
-n_outliers = int(sum(is_outlier))
-tot_n = int(len(is_outlier))
-n_clean = int(tot_n - n_outliers)
-n_train = [int(np.floor(n_clean*0.5)), int(np.floor(n_outliers*0.5))]
-n_calib = [min(2000, np.round(0.5*n_train[0]).astype(int)),
-           min(2000, np.round(0.5*n_train[1]).astype(int))]
-# set a smaller test size for pendigits dataset since not enough outliers 
-n_test = 700 if data_set_id == 4 else 1000
-purity_test = 0.9
+###############
+# Output file #
+###############
+outfile_prefix = "results/" + str(data_name) + "_n"+str(n) + "_seed" + str(random_state)
+outfile = outfile_prefix + ".txt"
+print("Output file: {:s}".format(outfile), end="\n")
 
-print("n_outliers {:d}, tot_n {:d}, n_clean {:d}, n_train_in {:d},n_train_out {:d},\
-       n_calib_in {:d}, n_calib_out {:d}, n_test {:d},".format(n_outliers, tot_n, \
-       n_clean, n_train[0], n_train[1], n_calib[0], n_calib[1], n_test))
-sys.stdout.flush()
+# Header for results file
+def add_header(df):
+    df["Data"] = data_name
+    df["n"] = n
+    df["Seed"] = random_state
+    return df
 
+#########################
+# Data-generating model #
+#########################
 
+class DataSet:
 
-###################
-# Output location #
-###################
-#out_dir = "C:/Users/liang/OneDrive/Desktop/CLRA/codes/realdata/results/"
-#out_dir = "/mnt/c/users/liang/OneDrive/Desktop/CLRA/codes/realdata/results/"
-out_dir = "/home1/ziyilian/CLRA/realdata/results/"
-out_file = "dataset_" + dataset_name + "_"
-out_file += "seed_" + str(random_state) + ".csv"
-print("Output directory for this experiment:\n  " + out_dir)
-print("Output file for this experiment:\n  " + out_file)
-out_file = out_dir + out_file
+    def __init__(self, data_name, random_state=None):
+        base_path = "data/"
+        # Load the data
+        if data_name=="musk":
+            X, Y = self._load_outlier_data(base_path, "musk.mat")
+        elif data_name=="arrhythmia":
+            X, Y = self._load_outlier_data(base_path, "arrhythmia.mat")
+        elif data_name=="speech":
+            X, Y = self._load_outlier_data(base_path, "speech.mat")
+        else:
+            print("Error: unknown data set!")
+            exit(0)
+        print("Loaded data set with {:d} samples: {:d} inliers, {:d} outliers.".format(len(Y), np.sum(Y==0), np.sum(Y==1)))
 
+        # Extract test set
+        if random_state is not None:
+            np.random.seed(random_state)            
+        idx_in = np.where(Y==0)[0]
+        idx_out = np.where(Y==1)[0]
+        idx_test_out = np.random.choice(idx_out, int(len(idx_out)/2), replace=False)
+        idx_test_in = np.random.choice(idx_in, len(idx_test_out), replace=False)
+        idx_test = np.append(idx_test_out, idx_test_in)
+        idx_train = np.setdiff1d(np.arange(len(Y)), idx_test)
+        np.random.shuffle(idx_train)
+        np.random.shuffle(idx_test)
+        self.X = X[idx_train]
+        self.Y = Y[idx_train]
+        self.X_test = X[idx_test]
+        self.Y_test = Y[idx_test]
+        self.n = len(self.Y)
 
+    def _load_outlier_data(self, base_path, filename):
+        if filename.endswith('.csv'):
+            data_raw = pd.pandas.read_csv(base_path + filename)
+        elif filename.endswith('.mat'):
+            if 'http' in filename:
+                mat = mat73.loadmat(base_path + filename)
+            else:
+                mat = loadmat(base_path + filename)
+            X = mat['X']
+            Y = mat['y'].reshape(-1,1)
+            data = np.concatenate((X,Y),axis=1)
+            index   = [str(i) for i in range(0, len(Y))]
+            columns = ["X_" + str(i) for i in range(0, X.shape[1])]
+            columns.append("Class")
+            data_raw = pd.DataFrame(data=data,index=index,columns=columns)
+        elif filename.endswith('.arff'):
+            data = arff.loadarff(base_path + filename)
+            data_raw = pd.DataFrame(data[0])
+            data_raw = data_raw.drop(columns=['id'])
+            data_raw = data_raw.rename(columns={"outlier": "Class"})
+            data_raw['Class'] = (data_raw['Class']==b'yes').astype(float)
 
-################
-# Data manager #
-################
+        X = np.array(data_raw.drop("Class", axis=1))
+        p = X.shape[1]
+        Y = np.array(data_raw["Class"]).astype(int)
+        return X, Y
 
-class DataManager:
-    def __init__(self, data, is_outlier):
-        self.data_clean = data[is_outlier==0]
-        self.data_outlier = data[is_outlier==1]
-        self.X_test_clean = None
-        self.Y_test_clean = None
-        self.X_test_outlier = None
-        self.Y_test_outlier = None
-        assert self.data_clean.shape[1] == self.data_outlier.shape[1], 'number of feature is different for two classes'
-        self.p = self.data_clean.shape[1]
+    def sample_test(self, n=None, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)            
+        if n is None:
+            idx_sample = np.arange(len(self.Y_test))
+        else:
+            idx_sample = np.random.choice(len(self.Y_test), n)
+        return self.X_test[idx_sample], self.Y_test[idx_sample]
 
-    def sample_train(self, n, random_state=2022):
-        # n should be a tuple specifying training size for both classes
-        # Divide full data set into training and test parts
-        X_train_clean, self.X_test_clean, Y_train_clean, self.Y_test_clean =\
-        train_test_split(self.data_clean, is_outlier[is_outlier==0], train_size=n[0], random_state=random_state)
-        X_train_outlier, self.X_test_outlier, Y_train_outlier, self.Y_test_outlier =\
-        train_test_split(self.data_outlier, is_outlier[is_outlier==1], train_size=n[1], random_state=random_state)
-        X_train = np.append(X_train_clean, X_train_outlier, axis=0)
-        Y_train = np.append(Y_train_clean, Y_train_outlier)
-        return X_train, Y_train 
-
-    def sample_fit_calib(self, n_train, n_cal, random_state=2022):
-        # n_cal should be a tuple specifying calibration size for both classes
-        X_train, Y_train = self.sample_train(n_train, random_state=random_state)
-        X_fit, Y_fit = [[]]*2, [[]]*2
-        X_cal, Y_cal = [[]]*2, [[]]*2
-        for i in range(2):
-            X_fit[i], X_cal[i], Y_fit[i], Y_cal[i] =\
-            train_test_split(X_train[np.where(Y_train==i)[0]], Y_train[np.where(Y_train==i)[0]], 
-                            test_size=n_cal[i], random_state = random_state)
-        return X_fit, Y_fit, X_cal, Y_cal
-
-    def sample_test(self, n_test, purity_test=0.5, random_state=2022):
-        if (self.X_test_clean is None):
-            print("Error: must call sample_train method first!")
-            return None
-
-        n_clean = np.round(n_test*purity_test).astype(int)
-        n_outlier = n_test - n_clean
-        assert n_outlier < len(self.Y_test_outlier), 'Not enough outliers for the test set.'
-
-        np.random.seed(random_state)
-        # Select clean samples
-        idx = np.random.choice(np.arange(len(self.Y_test_clean)), n_clean, replace=False)
-        
-        X_clean = self.X_test_clean[idx]
-        Y_clean = self.Y_test_clean[idx]
-        # Select outlier samples
-        idx = np.random.choice(np.arange(len(self.Y_test_outlier)), n_outlier, replace=False)
-        X_outlier = self.X_test_outlier[idx]
-        Y_outlier = self.Y_test_outlier[idx]
-        # Mix clean and outlier samples
-        X_test = np.append(X_clean, X_outlier, axis=0)
-        Y_test = np.append(Y_clean, Y_outlier)
-        
-        return X_test, Y_test
-
-
-#####################
-# Define experiment #
-#####################
-from sklearn.model_selection import train_test_split
-from statsmodels.stats.multitest import multipletests
-
-def run_experiment(data_manager, bc_methods, oc_methods, bc_bb, oc_bb, num_test,
-                   purity_test, results, alpha=0.1, random_state=2021):
-  
-    X_fit, Y_fit, X_cal, Y_cal = data_manager.sample_fit_calib(n_train, n_calib, random_state=random_state)
-
-    # train the bc black boxes 
-    # add the outlier calibration data to the training data
-    X_train_bc = np.concatenate((X_fit[0], X_fit[1], X_cal[1]), axis=0)
-    Y_train_bc = np.concatenate((Y_fit[0], Y_fit[1], Y_cal[1]))
-    # create a copy of the bb, fit the copy for this train iteration
-    bc_bb_new = bc_bb.copy()
-    for box_name in bc_bb:
-        bc_bb_new[box_name].fit(X_train_bc, Y_train_bc)
-
-    oc_bb_new = oc_bb.copy()
-    # train the oc black boxes
-    for box_name in oc_bb:
-        classifiers = [[]]*2
-        for i in range(2):
-            classifiers[i] = clone(oc_bb[box_name])
-            classifiers[i].fit(X_fit[i])
-        # update the dictionary with the trained bb tuple
-        oc_bb_new[box_name] = classifiers
+    def sample(self, n=None, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)            
+        if n is None:
+            idx_sample = np.arange(len(self.Y))
+        else:
+            idx_sample = np.random.choice(len(self.Y), n)
+        return self.X[idx_sample], self.Y[idx_sample]
     
-    # Evaluate the performance on test data
-    for test_idx in tqdm(range(num_test)):
-        # sample the test set
-        random_state_new = random_state + 10000 * test_idx
-        X_test, Y_test = data_manager.sample_test(n_test, purity_test=purity_test, random_state=random_state_new)
-        #lambda_par = 0.5
-        for bc_name in bc_methods:
-            for box_name in bc_bb_new:
-                black_box = bc_bb_new[box_name]
-                # only pass the null calibration data to the function
-                X_cal_new, Y_cal_new = X_cal[0], Y_cal[0]
-                # Apply outlier detection method
-                pvals = bc_methods[bc_name](X_cal_new, Y_cal_new, X_test, Y_test, black_box)
+###################
+# Run experiments #
+###################
 
-                # Apply SBH
-                reject, _, _, _ = multipletests(pvals, alpha=alpha/purity_test, method='fdr_bh')
+def run_experiment(dataset, random_state):
+    # Sample the training/calibration data
+    X, Y = dataset.sample(n)
+    X_in = X[Y==0]
+    X_out = X[Y==1]
+    # Sample the test data
+    X_test, Y_test = dataset.sample_test()
 
-                # Evaluate FDP and Power
-                rejections = np.sum(reject)
-                if rejections > 0:
-                    fdp = np.sum(reject[np.where(Y_test==0)[0]])/reject.shape[0] 
-                    power = np.sum(reject[np.where(Y_test==1)[0]])/np.sum(Y_test)
-                else:
-                    fdp = 0
-                    power = 0
+    # Initialize result data frame
+    results = pd.DataFrame({})
 
-                res_tmp = {'Method':bc_name, 'Black Box': box_name, 'Test_idx': test_idx, 'Train_idx': random_state,
-                            'Alpha':alpha, 'Rejections':rejections, 'FDR':fdp, 'Power':power}
-                res_tmp = pd.DataFrame(res_tmp, index=[0])
-                results = pd.concat([results, res_tmp])
+    # Conformal p-values via binary classification
+    print("Running {:d} binary classifiers...".format(len(binary_classifiers)))
+    sys.stdout.flush()
+    for bc_name in tqdm(binary_classifiers.keys()):
+        bc = binary_classifiers[bc_name]
+        method = BinaryConformal(X_in, X_out, bc, calib_size=calib_size, verbose=False)
+        pvals_test = method.compute_pvalues(X_test)
+        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+        results_tmp["Method"] = "Binary"
+        results_tmp["Model"] = bc_name
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
+        results = pd.concat([results, results_tmp])
 
-        for oc_name in oc_methods:
-            for box_name in oc_bb_new:
-                black_box = oc_bb_new[box_name]
+    # Conformal p-values via one-class classification
+    print("Running {:d} one-class classifiers...".format(len(oneclass_classifiers)))
+    sys.stdout.flush()
+    for occ_name in tqdm(oneclass_classifiers.keys()):
+        occ = oneclass_classifiers[occ_name]
+        method = OneClassConformal(X_in, occ, calib_size=calib_size, verbose=False)
+        pvals_test = method.compute_pvalues(X_test)
+        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+        results_tmp["Method"] = "One-Class"
+        results_tmp["Model"] = occ_name
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
+        results = pd.concat([results, results_tmp])
 
-                if (oc_name == 'OCC'):
-                    # only pass the null calibration data to the function
-                    X_cal_new, Y_cal_new = X_cal[0], Y_cal[0]
-                    # only need bb for inliers
-                    black_box_new = black_box[0]
-                    pvals = oc_methods[oc_name](X_cal_new, Y_cal_new, X_test, Y_test, black_box_new)
-                else: 
-                    # Apply outlier detection method
-                    pvals = oc_methods[oc_name](X_cal, Y_cal, X_test, Y_test, black_box)       
+    ## Conformal p-values via weighted one-class classification
+    print("Running {:d} weighted one-class classifiers...".format(len(oneclass_classifiers)))
+    sys.stdout.flush()
+    for occ_name in tqdm(oneclass_classifiers.keys()):
+        occ = oneclass_classifiers[occ_name]
+        method = IntegrativeConformal(X_in, X_out, bboxes_one=[occ], calib_size=calib_size, tuning=True, progress=False, verbose=False)
+        pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+        results_tmp["Method"] = "Weighted One-Class"
+        results_tmp["Model"] = occ_name
+        results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+        results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+        results = pd.concat([results, results_tmp])
 
-                # Apply SBH
-                reject, _, _, _ = multipletests(pvals, alpha=alpha/purity_test, method='fdr_bh')
-                
-                # Evaluate FDP and Power     
-                rejections = np.sum(reject)
-                if rejections > 0:
-                    fdp = np.sum(reject[np.where(Y_test==0)[0]])/reject.shape[0] 
-                    power = np.sum(reject[np.where(Y_test==1)[0]])/np.sum(Y_test)
-                else:
-                    fdp = 0
-                    power = 0
+    ## Conformal p-values via weighted one-class classification and learning ensemble
+    print("Running weighted classifiers with learning ensemble...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = IntegrativeConformal(X_in, X_out,
+                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+                                       calib_size=calib_size, tuning=True, progress=True, verbose=False)
+    pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    results_tmp["Method"] = "Ensemble"
+    results_tmp["Model"] = "Ensemble"
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    results = pd.concat([results, results_tmp])
 
-                res_tmp = {'Method':oc_name, 'Black Box': box_name, 'Test_idx': test_idx, 'Train_idx': random_state,
-                            'Alpha':alpha, 'Rejections':rejections, 'FDR':fdp, 'Power':power}
-                res_tmp = pd.DataFrame(res_tmp, index=[0])
-                results = pd.concat([results, res_tmp])
+    ## Conformal p-values via learning ensemble (no weighting)
+    print("Running weighted classifiers with learning ensemble (without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = IntegrativeConformal(X_in, X_out,
+                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    results_tmp["Method"] = "Ensemble (mixed, unweighted)"
+    results_tmp["Model"] = "Ensemble"
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
+
+    ## Conformal p-values via learning ensemble (one-class, no weighting)
+    print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = IntegrativeConformal(X_in, X_out,
+                                       bboxes_one=bboxes_one,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    results_tmp["Method"] = "Ensemble (one-class, unweighted)"
+    results_tmp["Model"] = "Ensemble"
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
+
+    ## Conformal p-values via binary ensemble (no weighting)
+    print("Running binary classifiers with learning ensemble (without weighting)...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = IntegrativeConformal(X_in, X_out,
+                                       bboxes_two=bboxes_two,
+                                       calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    pvals_test = method.compute_pvalues(X_test)
+    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    results_tmp["Method"] = "Ensemble (binary, unweighted)"
+    results_tmp["Model"] = "Ensemble"
+    results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["1/log(n1+1)"] = np.nan
+    results = pd.concat([results, results_tmp])
 
     return results
 
-
-
-#######################
-# Run all experiments #
-#######################
-
-# Initialize data manager with real data set
-data_manager = DataManager(dataset, is_outlier)
-
-# Run all the experiments
+# Initialize result data frame
 results = pd.DataFrame({})
-for train_index in tqdm(range(num_train)):
-    print("train index {:d}".format(train_index))
+
+for r in range(num_repetitions):
+    print("\nStarting repetition {:d} of {:d}:\n".format(r+1, num_repetitions))
     sys.stdout.flush()
-    random_state_new = (random_state-1)*num_train + train_index   # the training index out of all experiments
-    results = run_experiment(data_manager, bc_methods, oc_methods, bc_bb, oc_bb, num_test,
-                   purity_test, results, alpha=0.1, random_state=random_state_new)
+    # Change random seed for this repetition
+    random_state_new = 10*num_repetitions*random_state + r
+    dataset = DataSet(data_name, random_state=random_state_new)
+    # Run experiment and collect results
+    results_new = run_experiment(dataset, random_state_new)
+    results_new = add_header(results_new)
+    results_new["Repetition"] = r
+    results = pd.concat([results, results_new])
+    # Save results
+    results.to_csv(outfile, index=False)
+    print("\nResults written to {:s}\n".format(outfile))
+    sys.stdout.flush()
 
-# Save results on file
-if out_file is not None:
-    print("Saving file with {:d} rows".format(results.shape[0]))
-    results.to_csv(out_file)
-
-
-print("Output file for this experiment:\n  " + out_file)  
+print("\nAll experiments completed.\n")
+sys.stdout.flush()

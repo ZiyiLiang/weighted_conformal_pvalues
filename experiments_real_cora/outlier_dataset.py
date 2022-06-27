@@ -28,7 +28,6 @@ def load_outlier_data(base_path, filename):
         data_raw = data_raw.rename(columns={"outlier": "Class"})
         data_raw['Class'] = (data_raw['Class']==b'yes').astype(float)
 
-
     return data_raw
 
 def get_data_is_outlier(name, base_path):

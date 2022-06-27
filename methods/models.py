@@ -38,8 +38,7 @@ class DataModel:
         else:
             X = X_clean
         return X, is_outlier.astype(int)
-
-
+    
 class GaussianMixture(DataModel):
     def _sample_clean(self, n):
         p = self.p

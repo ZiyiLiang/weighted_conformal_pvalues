@@ -809,32 +809,28 @@ if(plot.10) {
 
     idir <- "results_hpc/setup_fdr1/"
     ifile.list <- list.files(idir)
-
-    results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
+    results.raw.1 <- do.call("rbind", lapply(ifile.list, function(ifile) {
         df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
     }))
+    idir <- "results_hpc/setup_fdr2/"
+    ifile.list <- list.files(idir)
+    results.raw.2 <- do.call("rbind", lapply(ifile.list, function(ifile) {
+        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+    }))
+    results.raw <- rbind(results.raw.1, results.raw.2)
 
     results <- results.raw %>%
-        group_by(Setup, Data, p, Signal, Purity, Alpha, n, Method) %>%
+        mutate(Method = sprintf("%s-%s", Method, LOO)) %>%
+        group_by(Setup, Data, p, Signal, Purity, Alpha, n, n_test, Method) %>%
         summarise(FDR.se=2*sd(FDP)/sqrt(n()), Power.se=2*sd(Power)/sqrt(n()), FDR=mean(FDP), Power=mean(Power))
     
-    ## method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
-    ## method.labels <- c("Integrative", "OCC (ensemble)", "Binary (ensemble)", "OCC (oracle)", "Binary (oracle)")
-    ## color.scale <- c("darkviolet", "deeppink", "slateblue", "red", "blue", "darkgreen", "green")
-    ## shape.scale <- c(8, 17, 15, 3, 1, 1)
-    ## alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
-
-    ## plot.fdr <- FALSE
-
-    ## if(plot.fdr) {
-    ##     results <- results.raw %>%
-    ##         mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-    ## } else {
-    ##     results <- results.raw %>%
-    ##         mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-    ##     metric.values <- c("Power", "TypeI")
-    ##     metric.labels <- c("TPR", "FPR")
-    ## }
+    data.values <- c("circles-mixed", "binomial")
+    data.labels <- c("Data distribution 1", "Data distribution 2")
+    method.values <- c("BH-none", "Selective-none", "Selective-median",  "Selective-min")
+    method.labels <- c("BH", "Selective", "Selective (LOO, median)", "Selective (LOO, min)")
+    color.scale <- c("darkviolet", "darkviolet", "darkviolet", "darkviolet", "darkviolet")
+    shape.scale <- c(8, 17, 15, 3, 1, 1)
+    alpha.scale <- c(0.33, 1, 1, 1)
 
     metric.values <- c("Power", "FDR")
     metric.labels <- c("Power", "FDR")
@@ -852,26 +848,29 @@ if(plot.10) {
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
                Metric = ifelse(Metric=="FDR.se", "FDR", Metric))
     df <- df.mean %>% inner_join(df.se) %>%
-        mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
-        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
 
 
     pp <- df %>%
-        filter(Data=="circles-mixed", Alpha==alpha.nominal) %>%
-#        filter(Method %in% method.values) %>%
-#        mutate(Method = factor(Method, method.values, method.labels)) %>%
-        ggplot(aes(x=n, y=Mean, color=Method, shape=Method)) +
+        filter(Signal %in% c(0.7,3)) %>%
+        filter(Alpha==alpha.nominal, Purity==0.5) %>%
+        mutate(Purity = sprintf("Inliers: %.2f", Purity)) %>%
+        filter(Method %in% method.values) %>%
+        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        mutate(Data = factor(Data, data.values, data.labels)) %>%
+        mutate(`FDR control method` = Method) %>%
+        ggplot(aes(x=n, y=Mean, color=`FDR control method`, shape=`FDR control method`, alpha=`FDR control method`)) +
         geom_point() +
         geom_line() +
-        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+                                        #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(Metric~Purity) +
+        facet_grid(Metric~Data) +
         scale_x_log10(breaks=c(30, 300, 3000)) +
-    #    scale_color_manual(values=color.scale) +
-    #    scale_shape_manual(values=shape.scale) +
-    #    scale_alpha_manual(values=alpha.scale) +
+        scale_color_manual(values=color.scale) +
+        scale_shape_manual(values=shape.scale) +
+        scale_alpha_manual(values=alpha.scale) +
         xlab("Sample size") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file="figures/experiment_fdr_1.pdf", width=6.5, height=3, units="in")
+    pp %>% ggsave(file="figures/experiment_fdr_1_2.pdf", width=6.5, height=3, units="in")
 }
