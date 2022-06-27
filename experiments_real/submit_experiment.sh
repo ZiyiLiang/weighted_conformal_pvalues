@@ -1,9 +1,11 @@
 #!/bin/bash
 
+SETUP=1
+
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("musk" "arrhythmia" "speech")
-  N_LIST=(20 30 50 100 200 500 1000 2000 5000)
-  SEED_LIST=$(seq 1 100)
+  N_LIST=(20 30 50 100 200 500 1000 2000) # 5000)
+  SEED_LIST=$(seq 1 10)
 
 fi
 
@@ -19,18 +21,16 @@ ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
 # Create directory for log files
 LOGS="logs"
 mkdir -p $LOGS
-mkdir -p $LOGS"/setup"$SETUP
 
 OUT_DIR="results"
 mkdir -p $OUT_DIR
-mkdir -p $OUT_DIR"/setup"$SETUP
 
 # Loop over configurations and chromosomes
 for SEED in $SEED_LIST; do
   for DATA in "${DATA_LIST[@]}"; do
     for N in "${N_LIST[@]}"; do
 
-      JOBN="setup"$SETUP"/"$DATA"_n"$N"_seed"$SEED
+      JOBN=$DATA"_n"$N"_seed"$SEED
       OUT_FILE=$OUT_DIR"/"$JOBN".txt"
       COMPLETE=0
       #ls $OUT_FILE
@@ -49,7 +49,7 @@ for SEED in $SEED_LIST; do
         # Print order
         echo $ORD
         # Submit order
-        #$ORD
+        $ORD
         # Run command now
         #./$SCRIPT
       fi

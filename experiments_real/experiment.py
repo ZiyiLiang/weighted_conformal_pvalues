@@ -54,8 +54,8 @@ num_repetitions = 2
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
-    'SVM-rbf': OneClassSVM(kernel='rbf', degree=3),
-    'SVM-sig': OneClassSVM(kernel='sigmoid', degree=3),
+    'SVM-rbf': OneClassSVM(kernel='rbf'),
+    'SVM-sig': OneClassSVM(kernel='sigmoid'),
     'SVM-pol': OneClassSVM(kernel='poly', degree=3),
     'IF': IsolationForest(random_state=random_state),
     'LOF': LocalOutlierFactor(novelty=True)
@@ -70,26 +70,6 @@ binary_classifiers = {
     'QDA': QuadraticDiscriminantAnalysis(),
     'MLP': MLPClassifier(max_iter=500, random_state=random_state)
 }
-
-####################################
-# Reduce the sample size if needed #
-####################################
-dataset = DataSet(data_name, random_state=0)
-n = np.minimum(n, dataset.n)
-
-###############
-# Output file #
-###############
-outfile_prefix = "results/" + str(data_name) + "_n"+str(n) + "_seed" + str(random_state)
-outfile = outfile_prefix + ".txt"
-print("Output file: {:s}".format(outfile), end="\n")
-
-# Header for results file
-def add_header(df):
-    df["Data"] = data_name
-    df["n"] = n
-    df["Seed"] = random_state
-    return df
 
 #########################
 # Data-generating model #
@@ -173,6 +153,30 @@ class DataSet:
             idx_sample = np.random.choice(len(self.Y), n)
         return self.X[idx_sample], self.Y[idx_sample]
     
+####################################
+# Reduce the sample size if needed #
+####################################
+dataset = DataSet(data_name, random_state=0)
+n = np.minimum(n, dataset.n)
+
+###############
+# Output file #
+###############
+outfile_prefix = "results/" + str(data_name) + "_n"+str(n) + "_seed" + str(random_state)
+outfile = outfile_prefix + ".txt"
+print("Output file: {:s}".format(outfile), end="\n")
+
+if os.path.exists(outfile):
+    print("Output file found. Quitting!")
+    exit(0)
+
+# Header for results file
+def add_header(df):
+    df["Data"] = data_name
+    df["n"] = n
+    df["Seed"] = random_state
+    return df
+
 ###################
 # Run experiments #
 ###################
