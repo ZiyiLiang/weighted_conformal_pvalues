@@ -3,15 +3,16 @@
 SETUP=1
 
 if [[ $SETUP == 1 ]]; then
-  DATA_LIST=("musk" "arrhythmia" "speech")
-  N_LIST=(20 30 50 100 200 500 1000 2000) # 5000)
+#  DATA_LIST=("musk" "arrhythmia" "speech")
+  DATA_LIST=("shuttle" "annthyroid" "mammography")
+  N_LIST=(10 20 30 50 100 200 500) # 1000 2000) # 5000)
   SEED_LIST=$(seq 1 10)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-02:00:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix

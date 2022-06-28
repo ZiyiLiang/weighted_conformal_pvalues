@@ -50,7 +50,7 @@ else: # Default parameters
 # Fixed experiment parameters
 calib_size = 0.5
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
-num_repetitions = 2
+num_repetitions = 1
 
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
@@ -80,15 +80,7 @@ class DataSet:
     def __init__(self, data_name, random_state=None):
         base_path = "../experiments_real/data/"
         # Load the data
-        if data_name=="musk":
-            X, Y = self._load_outlier_data(base_path, "musk.mat")
-        elif data_name=="arrhythmia":
-            X, Y = self._load_outlier_data(base_path, "arrhythmia.mat")
-        elif data_name=="speech":
-            X, Y = self._load_outlier_data(base_path, "speech.mat")
-        else:
-            print("Error: unknown data set!")
-            exit(0)
+        X, Y = self._load_outlier_data(base_path, data_name + ".mat")
         print("Loaded data set with {:d} samples: {:d} inliers, {:d} outliers.".format(len(Y), np.sum(Y==0), np.sum(Y==1)))
 
         # Extract test set
