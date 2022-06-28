@@ -78,7 +78,7 @@ binary_classifiers = {
 class DataSet:
 
     def __init__(self, data_name, random_state=None):
-        base_path = "data/"
+        base_path = "../experiments_real/data/"
         # Load the data
         if data_name=="musk":
             X, Y = self._load_outlier_data(base_path, "musk.mat")
@@ -106,7 +106,7 @@ class DataSet:
         self.Y = Y[idx_train]
         self.X_test = X[idx_test]
         self.Y_test = Y[idx_test]
-        self.n = len(self.Y)
+        self.n_out = np.sum(self.Y==1)
 
     def _load_outlier_data(self, base_path, filename):
         if filename.endswith('.csv'):
@@ -146,18 +146,24 @@ class DataSet:
 
     def sample(self, n=None, random_state=None):
         if random_state is not None:
-            np.random.seed(random_state)            
+            np.random.seed(random_state)    
         if n is None:
-            idx_sample = np.arange(len(self.Y))
-        else:
-            idx_sample = np.random.choice(len(self.Y), n)
+            n = np.sum(self.Y==1)
+        
+        idx_in = np.where(self.Y==0)[0]
+        idx_out = np.where(self.Y==1)[0]
+        n = np.minimum(n, len(idx_out))
+        idx_sample_out = np.random.choice(idx_out, n, replace=False)
+        idx_sample = np.append(idx_in, idx_sample_out)
+        np.random.shuffle(idx_sample)
+        
         return self.X[idx_sample], self.Y[idx_sample]
     
 ####################################
 # Reduce the sample size if needed #
 ####################################
 dataset = DataSet(data_name, random_state=0)
-n = np.minimum(n, dataset.n)
+n = np.minimum(n, dataset.n_out)
 
 ###############
 # Output file #
@@ -188,6 +194,15 @@ def run_experiment(dataset, random_state):
     X_out = X[Y==1]
     # Sample the test data
     X_test, Y_test = dataset.sample_test()
+
+    print("--------------------")
+    print("Number of inliers in training/calibration data: {}.".format(np.sum(Y==0)))
+    print("Number of outliers in training/calibration data: {}.".format(np.sum(Y==1)))
+
+    print("Number of inliers in test data: {}.".format(np.sum(Y_test==0)))
+    print("Number of outliers in test data: {}.".format(np.sum(Y_test==1)))
+    print("--------------------")
+
 
     # Initialize result data frame
     results = pd.DataFrame({})
