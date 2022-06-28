@@ -29,7 +29,7 @@ from util_experiments import eval_pvalues
 # Experiment parameters #
 #########################
 
-if False: # Input parameters
+if True: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -78,7 +78,7 @@ binary_classifiers = {
 class DataSet:
 
     def __init__(self, data_name, random_state=None):
-        base_path = "../experiments_real/data/"
+        base_path = "data/"
         # Load the data
         if data_name=="toxicity":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
