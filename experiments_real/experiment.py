@@ -29,7 +29,7 @@ from util_experiments import eval_pvalues
 # Experiment parameters #
 #########################
 
-if True: # Input parameters
+if False: # Input parameters
     # Parse input arguments
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
@@ -42,8 +42,8 @@ if True: # Input parameters
     random_state = int(sys.argv[3])
 
 else: # Default parameters
-    data_name = "musk"
-    n = 1000
+    data_name = "rejafada"
+    n = 100
     random_state = 2022
 
 
@@ -80,7 +80,25 @@ class DataSet:
     def __init__(self, data_name, random_state=None):
         base_path = "../experiments_real/data/"
         # Load the data
-        X, Y = self._load_outlier_data(base_path, data_name + ".mat")
+        if data_name=="toxicity":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
+            Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
+            X = np.array(data_raw.iloc[:,:-1])
+        elif data_name=="ad":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
+            data_raw = data_raw.fillna(data_raw.median())
+            Y = (np.array(data_raw.iloc[:,-1])=='ad.').astype(int)
+            X = np.array(data_raw.iloc[:,:-1])
+        elif data_name=="androgen":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
+            Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
+            X = np.array(data_raw.iloc[:,:-1])
+        elif data_name=="rejafada":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None).iloc[:,1:]
+            Y = (np.array(data_raw.iloc[:,0])=='M').astype(int)
+            X = np.array(data_raw.iloc[:,1:])
+        else:
+            X, Y = self._load_outlier_data(base_path, data_name + ".mat")
         print("Loaded data set with {:d} samples: {:d} inliers, {:d} outliers.".format(len(Y), np.sum(Y==0), np.sum(Y==1)))
 
         # Extract test set
@@ -100,9 +118,10 @@ class DataSet:
         self.Y_test = Y[idx_test]
         self.n_out = np.sum(self.Y==1)
 
-    def _load_outlier_data(self, base_path, filename):
+    def _load_outlier_data(self, base_path, filename, sep=","):
         if filename.endswith('.csv'):
-            data_raw = pd.pandas.read_csv(base_path + filename)
+            data_raw = pd.pandas.read_csv(base_path + filename, sep=sep)
+            pdb.set_trace()
         elif filename.endswith('.mat'):
             if 'http' in filename:
                 mat = mat73.loadmat(base_path + filename)
@@ -188,6 +207,7 @@ def run_experiment(dataset, random_state):
     X_test, Y_test = dataset.sample_test()
 
     print("--------------------")
+    print("Number of features: {}.".format(X.shape[1]))
     print("Number of inliers in training/calibration data: {}.".format(np.sum(Y==0)))
     print("Number of outliers in training/calibration data: {}.".format(np.sum(Y==1)))
 

@@ -4,7 +4,8 @@ SETUP=1
 
 if [[ $SETUP == 1 ]]; then
 #  DATA_LIST=("musk" "arrhythmia" "speech")
-  DATA_LIST=("shuttle" "annthyroid" "mammography")
+  #DATA_LIST=("shuttle" "annthyroid" "mammography")
+  DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
   N_LIST=(10 20 30 50 100 200 500) # 1000 2000) # 5000)
   SEED_LIST=$(seq 1 10)
 

@@ -78,7 +78,7 @@ if(plot.1) {
 #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
         facet_grid(Metric~Data) +
-        scale_x_log10(breaks=c(30, 300, 3000)) +
+        scale_x_log10() +#breaks=c(30, 300, 3000)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
         scale_alpha_manual(values=alpha.scale) +
