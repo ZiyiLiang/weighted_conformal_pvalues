@@ -23,7 +23,7 @@ if(plot.1) {
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- TRUE
+    plot.fdr <- FALSE
 
     if(plot.fdr) {
         results <- results.raw %>%
@@ -42,14 +42,14 @@ if(plot.1) {
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
     results.fdr.models <- results %>%
-        group_by(Data, n, Method, Model, Alpha) %>%
+        group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
         summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
 
     results.fdr.oracle <- results %>%
         filter(Method %in% c("Binary", "One-Class")) %>%
-        group_by(Data, n, Method, Model, Alpha) %>%
+        group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
         summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
-        group_by(Data, n, Method, Alpha) %>%
+        group_by(Data, n_in, n_out, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
                   TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
         select(-idx.oracle)
@@ -73,13 +73,13 @@ if(plot.1) {
         filter(Metric %in% c("TPR", "Power")) %>%
         filter(Method %in% method.values) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
-        ggplot(aes(x=n, y=Mean, color=Method, shape=Method, alpha=Method)) +
+        ggplot(aes(x=n_out, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
         geom_line() +
-#        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
 #        facet_grid(Metric~Data) +
-        facet_wrap(Data~.) +
+        facet_grid(Data~n_in, scales="free") +
         scale_x_log10() +#breaks=c(30, 300, 3000)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
