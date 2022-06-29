@@ -1,11 +1,15 @@
 import numpy as np
 import pandas as pd
-from sklearn.datasets import load_digits, fetch_covtype
+from sklearn.datasets import load_digits, fetch_covtype, fetch_openml
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 import re
 import pickle
+from scipy.io import arff, loadmat
 import pdb
+from joblib import Memory
+memory = Memory('./tmp')
+fetch_openml_cached = memory.cache(fetch_openml)
 
 def unpickle(file):
     """load the cifar-10 data"""
@@ -83,6 +87,25 @@ class DataSet:
             dataraw = load_digits()
             X = dataraw['data']
             Y = dataraw['target'] == 0
+        elif data_name=="mnist":
+            dataset = fetch_openml_cached('mnist_784')
+            #mnist = fetch_openml('mnist_784', cache=True)
+            X = np.array(dataset.data)
+            Y = np.array(dataset.target).astype(int)
+            Y = (Y!=3).astype(int)
+
+        elif data_name=="images":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
+            Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
+            X = np.array(data_raw.iloc[:,1:])
+
+        elif data_name=="fashion-MNIST":
+            dataset = fetch_openml_cached('Fashion-MNIST', version=1)
+            #mnist = fetch_openml('mnist_784', cache=True)
+            X = np.array(dataset.data)
+            Y = np.array(dataset.target).astype(int)
+            pdb.set_trace()
+            
         elif data_name=="covtype":
             dataraw = fetch_covtype()
             X = dataraw['data']
@@ -121,8 +144,9 @@ class DataSet:
             X = np.array(data_raw.iloc[:,:-1])
         elif data_name=="seizures":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
-            idx_keep = np.where(data_raw.iloc[:,-1]!=1)[0]
-            Y = (np.array(data_raw.iloc[idx_keep,-1])==5).astype(int)
+            #idx_keep = np.where(data_raw.iloc[:,-1]!=1)[0]
+            idx_keep = np.arange(data_raw.shape[0])
+            Y = (np.array(data_raw.iloc[idx_keep,-1])!=1).astype(int)
             X = np.array(data_raw.iloc[idx_keep,1:-1])
         elif data_name=="splice":
             base_path = "../experiments_real/data/"
@@ -180,7 +204,7 @@ class DataSet:
             X = X[idx_keep]
             Y = Y[idx_keep]
             X = X.astype(float)
-            Y = ((Y==18)+(Y==19)==0).astype(int)
+            Y = ((Y==14)==0).astype(int)
         
         elif data_name=="cifar-10":
             cifar_10_dir = "../experiments_real/data/cifar-10"

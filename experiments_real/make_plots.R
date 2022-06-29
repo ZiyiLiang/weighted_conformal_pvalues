@@ -14,7 +14,11 @@ if(plot.1) {
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
-        df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+        if(startsWith(ifile, "cifar-100_")) {
+            df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
+        } else {
+            df <- tibble()
+        }
     }))
 
     method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
