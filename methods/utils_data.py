@@ -180,7 +180,7 @@ class DataSet:
             X = X[idx_keep]
             Y = Y[idx_keep]
             X = X.astype(float)
-            Y = (Y!=14).astype(int)
+            Y = ((Y==18)+(Y==19)==0).astype(int)
         
         elif data_name=="cifar-10":
             cifar_10_dir = "../experiments_real/data/cifar-10"
@@ -198,7 +198,9 @@ class DataSet:
             np.random.seed(random_state)            
         idx_in = np.where(Y==0)[0]
         idx_out = np.where(Y==1)[0]
-        idx_test_out = np.random.choice(idx_out, int(len(idx_out)/5), replace=False)
+        n_test_out = 100
+        n_test_out = np.minimum(n_test_out, int(len(idx_out)/5))
+        idx_test_out = np.random.choice(idx_out, n_test_out, replace=False)
         idx_test_in = np.random.choice(idx_in, np.minimum(len(idx_in), len(idx_test_out)), replace=False)
         idx_test = np.append(idx_test_out, idx_test_in)
         idx_train = np.setdiff1d(np.arange(len(Y)), idx_test)
@@ -209,7 +211,6 @@ class DataSet:
         self.X_test = X[idx_test]
         self.Y_test = Y[idx_test]
         self.n_out = np.sum(self.Y==1)
-#        pdb.set_trace()
 
     def _load_outlier_data(self, base_path, filename, sep=","):
         if filename.endswith('.csv'):
@@ -273,5 +274,5 @@ class DataSet:
         
         idx_sample = np.append(idx_sample_in, idx_sample_out)
         np.random.shuffle(idx_sample)
-        
+       
         return self.X[idx_sample], Y[idx_sample]
