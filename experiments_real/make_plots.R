@@ -7,7 +7,7 @@ plot.1 <- TRUE
 #############
 ## Setup 1 ##
 #############
-
+ 
 if(plot.1) {
 
     idir <- "results_hpc/"
@@ -23,7 +23,7 @@ if(plot.1) {
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- FALSE
+    plot.fdr <- TRUE
 
     if(plot.fdr) {
         results <- results.raw %>%
@@ -70,6 +70,7 @@ if(plot.1) {
 
     pp <- results.fdr %>%
         filter(Alpha==alpha.nominal) %>%
+        filter(Metric %in% c("TPR", "Power")) %>%
         filter(Method %in% method.values) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
         ggplot(aes(x=n, y=Mean, color=Method, shape=Method, alpha=Method)) +
@@ -77,15 +78,15 @@ if(plot.1) {
         geom_line() +
 #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(Metric~Data) +
+#        facet_grid(Metric~Data) +
+        facet_wrap(Data~.) +
         scale_x_log10() +#breaks=c(30, 300, 3000)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
         scale_alpha_manual(values=alpha.scale) +
-        xlab("Sample size") +
+        xlab("Number of outliers") +
         ylab("") +
         theme_bw()
-    pp
-    #pp %>% ggsave(file=sprintf("figures/experiment_1_n_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
+    pp %>% ggsave(file=sprintf("figures/experiment_real.pdf", ifelse(plot.fdr, "bh", "fixed")), width=7, height=4, units="in")
 
 }

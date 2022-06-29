@@ -9,8 +9,9 @@ if [[ $SETUP == 1 ]]; then
   #DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
   #N_LIST=(10 20 30 50 100 200 500) # 1000 2000) # 5000)
   #N_LIST=(1 2 5)
-  N_LIST=(1 2 5 10 20 30 50 100 200 500) # 1000 2000) # 5000)
-  SEED_LIST=$(seq 1 100)
+  N_IN_LIST=(1000) # 1000 2000) # 5000)
+  N_OUT_LIST=(1 2 5 10 20) # 1000 2000) # 5000)
+  SEED_LIST=$(seq 1 1)
 
 fi
 
@@ -33,9 +34,10 @@ mkdir -p $OUT_DIR
 # Loop over configurations and chromosomes
 for SEED in $SEED_LIST; do
   for DATA in "${DATA_LIST[@]}"; do
-    for N in "${N_LIST[@]}"; do
+    for N_IN in "${N_IN_LIST[@]}"; do
+    for N_OUT in "${N_OUT_LIST[@]}"; do
 
-      JOBN=$DATA"_n"$N"_seed"$SEED
+      JOBN=$DATA"_nin"$N_IN"_nout"$N_OUT"_seed"$SEED
       OUT_FILE=$OUT_DIR"/"$JOBN".txt"
       COMPLETE=0
       #ls $OUT_FILE
@@ -45,7 +47,7 @@ for SEED in $SEED_LIST; do
 
       if [[ $COMPLETE -eq 0 ]]; then
         # Script to be run
-        SCRIPT="experiment.sh $DATA $N $SEED"
+        SCRIPT="experiment.sh $DATA $N_IN $N_OUT $SEED"
         # Define job name for this chromosome
         OUTF=$LOGS"/"$JOBN".out"
         ERRF=$LOGS"/"$JOBN".err"
