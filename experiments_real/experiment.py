@@ -64,6 +64,12 @@ alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
 if data_name=="images_flowers":
+    prop_mix = 0.5
+elif data_name=="images_cars":
+    prop_mix = 0.0
+    
+
+if data_name in ["images_flowers", "images_cars"]:
     # List of possible one-class classifiers with desired hyper-parameters
     oneclass_classifiers = {
         'SVM-rbf': OneClassSVM(kernel='rbf'),
@@ -109,7 +115,7 @@ else:
 #########################
 
 base_path = "../experiments_real/data/"
-dataset = DataSet(base_path, data_name, random_state=0)
+dataset = DataSet(base_path, data_name, random_state=0, prop_mix=prop_mix)
 
 n_in = np.minimum(n_in, dataset.n_in)
 n_out = np.minimum(n_out, dataset.n_out)
@@ -276,7 +282,7 @@ for r in range(num_repetitions):
     sys.stdout.flush()
     # Change random seed for this repetition
     random_state_new = 10*num_repetitions*random_state + r
-    dataset = DataSet(base_path, data_name, random_state=random_state_new)
+    dataset = DataSet(base_path, data_name, random_state=random_state_new, prop_mix=prop_mix)
     # Run experiment and collect results
     results_new = run_experiment(dataset, random_state_new)
     results_new = add_header(results_new)
