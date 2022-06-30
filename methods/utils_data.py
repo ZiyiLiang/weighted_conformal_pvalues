@@ -107,7 +107,7 @@ class DataSet:
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["daisy"]
-            labels_outlier_train = ["dandelion","sunflowers"]
+            labels_outlier_train = ["roses","dandelion"]
 
         elif data_name=="fashion-MNIST":
             dataset = fetch_openml_cached('Fashion-MNIST', version=1)
