@@ -108,6 +108,7 @@ class DataSet:
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["daisy"]
             labels_outlier_train = ["roses","dandelion"]
+            labels_outlier_test = ["tulips","sunflowers"]
 
         elif data_name=="fashion-MNIST":
             dataset = fetch_openml_cached('Fashion-MNIST', version=1)
@@ -243,7 +244,8 @@ class DataSet:
         is_inlier = np.array([y in labels_inlier for y in Y]).astype(int)
         is_outlier = 1-is_inlier
         is_outlier_train = np.array([y in labels_outlier_train for y in Y]).astype(int)
-    
+        is_outlier_test = np.array([y in labels_outlier_test for y in Y]).astype(int)
+
         print("Loaded data set with {:d} samples: {:d} inliers and {:d} outliers, of which {:d} are available for training."\
               .format(len(Y), np.sum(is_inlier), np.sum(is_outlier), np.sum(is_outlier_train)))
 
@@ -255,7 +257,10 @@ class DataSet:
         idx_in = np.where((is_outlier==0))[0]
 
         # Separate the outliers
-        idx_train_out = np.where((is_outlier==1)*(is_outlier_train==1)==1)[0]
+        idx_train_out_majority = np.where(is_outlier_train==1)[0]
+        n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(0.1*len(idx_train_out_majority)))
+        idx_train_out_minority = np.random.choice(np.where(is_outlier_test==1)[0], n_train_out_minority, replace=False)
+        idx_train_out = np.append(idx_train_out_majority, idx_train_out_minority)
         idx_test_out = np.where((is_outlier==1)*(is_outlier_train==0)==1)[0]
         n_test_out = len(idx_test_out)
 
