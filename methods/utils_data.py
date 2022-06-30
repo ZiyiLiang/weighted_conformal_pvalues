@@ -81,28 +81,9 @@ def load_cifar_10_data(data_dir, negatives=False):
 
 class DataSet:
 
-    def __init__(self, base_path, data_name, random_state=None):        
+    def __init__(self, base_path, data_name, random_state=None, prop_mix=0.5):        
         # Load the data
-        if data_name=="digits":
-            dataraw = load_digits()
-            X = dataraw['data']
-            Y = dataraw['target'] == 0
-            Z = Y
-        elif data_name=="mnist":
-            dataset = fetch_openml_cached('mnist_784')
-            #mnist = fetch_openml('mnist_784', cache=True)
-            X = np.array(dataset.data)
-            Y = np.array(dataset.target).astype(int)
-            Y = (Y!=3).astype(int)
-            Z = Y
-
-        elif data_name=="images":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
-            Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
-            Z = Y
-            X = np.array(data_raw.iloc[:,1:])
-
-        elif data_name=="images_flowers":
+        if data_name=="images_flowers":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
@@ -110,136 +91,160 @@ class DataSet:
             labels_outlier_train = ["roses","dandelion"]
             labels_outlier_test = ["tulips","sunflowers"]
 
-        elif data_name=="fashion-MNIST":
-            dataset = fetch_openml_cached('Fashion-MNIST', version=1)
-            #mnist = fetch_openml('mnist_784', cache=True)
-            X = np.array(dataset.data)
-            Y = np.array(dataset.target).astype(int)
-            Z = Y
-            pdb.set_trace() 
-           
-        elif data_name=="covtype":
-            dataraw = fetch_covtype()
-            X = dataraw['data']
-            Y = dataraw['target'] == 1
-            Z = Y
-        elif data_name=="toxicity":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
-            Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
-            X = np.array(data_raw.iloc[:,:-1])
-            Z = Y
-        elif data_name=="ad":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
-            data_raw = data_raw.fillna(data_raw.median())
-            Y = (np.array(data_raw.iloc[:,-1])=='ad.').astype(int)
-            X = np.array(data_raw.iloc[:,:-1])
-            Z = Y
-        elif data_name=="androgen":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
-            Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
-            X = np.array(data_raw.iloc[:,:-1])
-            Z = Y
-        elif data_name=="rejafada":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None).iloc[:,1:]
-            Y = (np.array(data_raw.iloc[:,0])=='M').astype(int)
+        elif data_name=="images_cars":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)            
+            Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
-            Z = Y
-        elif data_name=="hepatitis":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
-            data_raw = data_raw.fillna(data_raw.median())
-            Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
-            X = np.array(data_raw.iloc[:,1:])
-            Z = Y
-        elif data_name=="ctg":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
-            data_raw = data_raw.fillna(data_raw.median())
-            Y = (np.array(data_raw.iloc[:,-1])==2).astype(int)
-            X = np.array(data_raw.iloc[:,:-1])
-            Z = Y
+            labels_inlier = ["car"]
+            labels_outlier_train = ["cat","dog","flower","fruit","person"]
+            labels_outlier_test = ["airplane","motorbike"]
+
         elif data_name=="creditcard":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
-            data_raw = data_raw.fillna(data_raw.median())
-            Y = (np.array(data_raw.iloc[:,-1])==1).astype(int)
-            X = np.array(data_raw.iloc[:,:-1])
-            Z = Y
-        elif data_name=="seizures":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
-            #idx_keep = np.where(data_raw.iloc[:,-1]!=1)[0]
-            idx_keep = np.arange(data_raw.shape[0])
-            Y = (np.array(data_raw.iloc[idx_keep,-1])!=1).astype(int)
-            X = np.array(data_raw.iloc[idx_keep,1:-1])
-            Z = Y
-        elif data_name=="splice":
-            base_path = "../experiments_real/data/"
-            data_raw = pd.pandas.read_csv(base_path + "splice.data", header=None, sep=",")
-            X_raw = data_raw.iloc[:,-1]
+            Y = np.array(data_raw.iloc[:,-1])
+            X = np.array(data_raw.iloc[:,:-1])            
+            labels_inlier = ["normal"]
+            labels_outlier_train = ["fraud-0"]
+            labels_outlier_test = ["fraud-1"]
 
-            label_encoder = LabelEncoder()
-            label_encoder.fit(np.array(['a','c','g','t','n']))
+        # elif data_name=="digits":
+        #     dataraw = load_digits()
+        #     X = dataraw['data']
+        #     Y = dataraw['target'] == 0
+        #     Z = Y
+        # elif data_name=="mnist":
+        #     dataset = fetch_openml_cached('mnist_784')
+        #     #mnist = fetch_openml('mnist_784', cache=True)
+        #     X = np.array(dataset.data)
+        #     Y = np.array(dataset.target).astype(int)
+        #     Y = (Y!=3).astype(int)
+        #     Z = Y
 
-            def string_to_array(seq_string):
-                seq_string = seq_string.lower().strip()
-                seq_string = re.sub('[^acgt]', 'n', seq_string)
-                seq_string = np.array(list(seq_string))
-                return seq_string
 
-            int_encoded = label_encoder.transform(string_to_array('acgtn'))
-            onehot_encoder = OneHotEncoder(sparse=False, dtype=int)
-            int_encoded = int_encoded.reshape(len(int_encoded), 1)
-            onehot_encoded = onehot_encoder.fit_transform(int_encoded)
+        # elif data_name=="fashion-MNIST":
+        #     dataset = fetch_openml_cached('Fashion-MNIST', version=1)
+        #     #mnist = fetch_openml('mnist_784', cache=True)
+        #     X = np.array(dataset.data)
+        #     Y = np.array(dataset.target).astype(int)
+        #     Z = Y
+        #     pdb.set_trace() 
+           
+        # elif data_name=="covtype":
+        #     dataraw = fetch_covtype()
+        #     X = dataraw['data']
+        #     Y = dataraw['target'] == 1
+        #     Z = Y
+        # elif data_name=="toxicity":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
+        #     Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
+        #     X = np.array(data_raw.iloc[:,:-1])
+        #     Z = Y
+        # elif data_name=="ad":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
+        #     data_raw = data_raw.fillna(data_raw.median())
+        #     Y = (np.array(data_raw.iloc[:,-1])=='ad.').astype(int)
+        #     X = np.array(data_raw.iloc[:,:-1])
+        #     Z = Y
+        # elif data_name=="androgen":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
+        #     Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
+        #     X = np.array(data_raw.iloc[:,:-1])
+        #     Z = Y
+        # elif data_name=="rejafada":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None).iloc[:,1:]
+        #     Y = (np.array(data_raw.iloc[:,0])=='M').astype(int)
+        #     X = np.array(data_raw.iloc[:,1:])
+        #     Z = Y
+        # elif data_name=="hepatitis":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
+        #     data_raw = data_raw.fillna(data_raw.median())
+        #     Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
+        #     X = np.array(data_raw.iloc[:,1:])
+        #     Z = Y
+        # elif data_name=="ctg":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
+        #     data_raw = data_raw.fillna(data_raw.median())
+        #     Y = (np.array(data_raw.iloc[:,-1])==2).astype(int)
+        #     X = np.array(data_raw.iloc[:,:-1])
+        #     Z = Y
+        # elif data_name=="seizures":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
+        #     #idx_keep = np.where(data_raw.iloc[:,-1]!=1)[0]
+        #     idx_keep = np.arange(data_raw.shape[0])
+        #     Y = (np.array(data_raw.iloc[idx_keep,-1])!=1).astype(int)
+        #     X = np.array(data_raw.iloc[idx_keep,1:-1])
+        #     Z = Y
+        # elif data_name=="splice":
+        #     base_path = "../experiments_real/data/"
+        #     data_raw = pd.pandas.read_csv(base_path + "splice.data", header=None, sep=",")
+        #     X_raw = data_raw.iloc[:,-1]
 
-            def one_hot_encoder(seq_string):
-                int_encoded = label_encoder.transform(seq_string)
-                int_encoded = int_encoded.reshape(len(int_encoded), 1)
-                onehot_encoded = onehot_encoder.transform(int_encoded)
-                onehot_encoded = np.delete(onehot_encoded, -1, 1)
-                return onehot_encoded
+        #     label_encoder = LabelEncoder()
+        #     label_encoder.fit(np.array(['a','c','g','t','n']))
 
-            X = [ one_hot_encoder(string_to_array(x)).flatten() for x in X_raw]
-            X = np.stack(X)
-            Y = np.array(data_raw.iloc[:,0]=="IE").astype(int)
-            Z = Y
+        #     def string_to_array(seq_string):
+        #         seq_string = seq_string.lower().strip()
+        #         seq_string = re.sub('[^acgt]', 'n', seq_string)
+        #         seq_string = np.array(list(seq_string))
+        #         return seq_string
 
-        elif data_name=="cifar-100":
-            def unpickle(file):
-                import pickle
-                with open(file, 'rb') as fo:
-                    dict = pickle.load(fo, encoding='bytes')
-                return dict
+        #     int_encoded = label_encoder.transform(string_to_array('acgtn'))
+        #     onehot_encoder = OneHotEncoder(sparse=False, dtype=int)
+        #     int_encoded = int_encoded.reshape(len(int_encoded), 1)
+        #     onehot_encoded = onehot_encoder.fit_transform(int_encoded)
 
-            base_path = "../experiments_real/data/"
-            metadata_path = base_path + 'cifar-100/meta' # change this path`\
-            metadata = unpickle(metadata_path)
-            superclass_dict = dict(list(enumerate(metadata[b'coarse_label_names'])))
+        #     def one_hot_encoder(seq_string):
+        #         int_encoded = label_encoder.transform(seq_string)
+        #         int_encoded = int_encoded.reshape(len(int_encoded), 1)
+        #         onehot_encoded = onehot_encoder.transform(int_encoded)
+        #         onehot_encoded = np.delete(onehot_encoded, -1, 1)
+        #         return onehot_encoded
 
-            data_pre_path = base_path + 'cifar-100/' # change this path
-            # File paths
-            data_train_path = data_pre_path + 'train'
-            data_test_path = data_pre_path + 'test'
-            # Read dictionary
-            data_train_dict = unpickle(data_train_path)
-            data_test_dict = unpickle(data_test_path)
-            # Get data (change the coarse_labels if you want to use the 100 classes)
-            X = data_train_dict[b'data']
-            Y = np.array(data_train_dict[b'coarse_labels'])
-            idx_keep = np.arange(len(Y)) #np.where((Y==18)+(Y==19)+(Y==5)+(Y==6)+(Y==14)>0)[0]
-            X = X[idx_keep]
-            Y = Y[idx_keep]
-            X = X.astype(float)
-            Y = ((Y==14)==0).astype(int)
-            Z = Y
+        #     X = [ one_hot_encoder(string_to_array(x)).flatten() for x in X_raw]
+        #     X = np.stack(X)
+        #     Y = np.array(data_raw.iloc[:,0]=="IE").astype(int)
+        #     Z = Y
+
+        # elif data_name=="cifar-100":
+        #     def unpickle(file):
+        #         import pickle
+        #         with open(file, 'rb') as fo:
+        #             dict = pickle.load(fo, encoding='bytes')
+        #         return dict
+
+        #     base_path = "../experiments_real/data/"
+        #     metadata_path = base_path + 'cifar-100/meta' # change this path`\
+        #     metadata = unpickle(metadata_path)
+        #     superclass_dict = dict(list(enumerate(metadata[b'coarse_label_names'])))
+
+        #     data_pre_path = base_path + 'cifar-100/' # change this path
+        #     # File paths
+        #     data_train_path = data_pre_path + 'train'
+        #     data_test_path = data_pre_path + 'test'
+        #     # Read dictionary
+        #     data_train_dict = unpickle(data_train_path)
+        #     data_test_dict = unpickle(data_test_path)
+        #     # Get data (change the coarse_labels if you want to use the 100 classes)
+        #     X = data_train_dict[b'data']
+        #     Y = np.array(data_train_dict[b'coarse_labels'])
+        #     idx_keep = np.arange(len(Y)) #np.where((Y==18)+(Y==19)+(Y==5)+(Y==6)+(Y==14)>0)[0]
+        #     X = X[idx_keep]
+        #     Y = Y[idx_keep]
+        #     X = X.astype(float)
+        #     Y = ((Y==14)==0).astype(int)
+        #     Z = Y
         
-        elif data_name=="cifar-10":
-            cifar_10_dir = "../experiments_real/data/cifar-10"
-            X, _, Y, test_data, _, _ = load_cifar_10_data(cifar_10_dir)
-            idx_keep = np.where((Y==0)+(Y==3)+(Y==4)+(Y==5)+(Y==6)+(Y==7)>0)[0]
-            X = X[idx_keep]
-            Y = (Y[idx_keep] == 0).astype(int)
-            Z = Y
+        # elif data_name=="cifar-10":
+        #     cifar_10_dir = "../experiments_real/data/cifar-10"
+        #     X, _, Y, test_data, _, _ = load_cifar_10_data(cifar_10_dir)
+        #     idx_keep = np.where((Y==0)+(Y==3)+(Y==4)+(Y==5)+(Y==6)+(Y==7)>0)[0]
+        #     X = X[idx_keep]
+        #     Y = (Y[idx_keep] == 0).astype(int)
+        #     Z = Y
             
-        else:
-            X, Y = self._load_outlier_data(base_path, data_name + ".mat")
-            Z = Y
+        # else:
+        #     X, Y = self._load_outlier_data(base_path, data_name + ".mat")
+        #     Z = Y
 
         is_inlier = np.array([y in labels_inlier for y in Y]).astype(int)
         is_outlier = 1-is_inlier
@@ -258,7 +263,7 @@ class DataSet:
 
         # Separate the outliers
         idx_train_out_majority = np.where(is_outlier_train==1)[0]
-        n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(0.1*len(idx_train_out_majority)))
+        n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(prop_mix*len(idx_train_out_majority)))
         idx_train_out_minority = np.random.choice(np.where(is_outlier_test==1)[0], n_train_out_minority, replace=False)
         idx_train_out = np.append(idx_train_out_majority, idx_train_out_minority)
         idx_test_out = np.where((is_outlier==1)*(is_outlier_train==0)==1)[0]
@@ -321,6 +326,7 @@ class DataSet:
         if n is None:
             idx_sample = np.arange(len(self.Y_test))
         else:
+            n = np.minimum(len(self.Y_test), n)
             idx_sample = np.random.choice(len(self.Y_test), n)
         return self.X_test[idx_sample], self.Y_test[idx_sample]
 

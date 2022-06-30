@@ -21,13 +21,13 @@ if(plot.1) {
         }
     }))
 
-    method.values <- c("Ensemble", "Ensemble (one-class, unweighted)", "Ensemble (binary, unweighted)",  "One-Class", "Binary")
-    method.labels <- c("Integrative", "OCC (ensemble)", "Binary (ensemble)", "OCC (oracle)", "Binary (oracle)")
-    color.scale <- c("darkviolet", "deeppink", "slateblue", "red", "blue", "darkgreen", "green")
-    shape.scale <- c(8, 17, 15, 3, 1, 1)
-    alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
+    method.values <- c("Ensemble", "Ensemble (one-class)", "Ensemble (one-class, unweighted)",  "Ensemble (mixed, unweighted)", "One-Class", "Binary")
+    method.labels <- c("Integrative", "Integrative(one-class)", "Integrative (binary, unweighted)", "Integrative (unweighted)", "OCC (oracle)", "Binary (oracle)")
+    color.scale <- c("darkviolet", "darkviolet", "deeppink", "magenta", "red", "blue", "darkgreen", "green")
+    shape.scale <- c(8, 8, 17, 15, 3, 1, 1)
+    alpha.scale <- c(0.5, 1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- FALSE
+    plot.fdr <- TRUE
 
     if(plot.fdr) {
         results <- results.raw %>%
@@ -80,7 +80,7 @@ if(plot.1) {
         ggplot(aes(x=n_out, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
         geom_line() +
-        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+#        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
 #        facet_grid(Metric~Data) +
         facet_grid(Data~n_in, scales="free") +
