@@ -14,7 +14,7 @@ if(plot.1) {
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
-        if(startsWith(ifile, "images_flowers")) {
+        if(startsWith(ifile, "images_")) {
             df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
         } else {
             df <- tibble()
@@ -41,7 +41,7 @@ if(plot.1) {
         metric.labels <- c("TPR", "FPR")
     }
 
-    alpha.nominal <- 0.1
+    alpha.nominal <- 0.01
     df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
@@ -83,7 +83,7 @@ if(plot.1) {
 #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
 #        facet_grid(Metric~Data) +
-        facet_grid(Data~n_in, scales="free") +
+        facet_wrap(Data~n_in, scales="free") +
         scale_x_log10() +#breaks=c(30, 300, 3000)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +

@@ -96,8 +96,8 @@ class DataSet:
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["car"]
-            labels_outlier_train = ["cat","dog","flower","fruit","person"]
-            labels_outlier_test = ["airplane","motorbike"]
+            labels_outlier_train = ["motorbike"]
+            labels_outlier_test = ["person", "cat","airplane","flower","fruit","dog"]
 
         elif data_name=="creditcard":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
@@ -106,6 +106,14 @@ class DataSet:
             labels_inlier = ["normal"]
             labels_outlier_train = ["fraud-0"]
             labels_outlier_test = ["fraud-1"]
+
+        elif data_name=="covtype":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
+            Y = np.array(data_raw.iloc[:,-1])
+            X = np.array(data_raw.iloc[:,:-1])            
+            labels_inlier = [2]
+            labels_outlier_train = [1,4,5,6,7]
+            labels_outlier_test = [3]
 
         # elif data_name=="digits":
         #     dataraw = load_digits()
