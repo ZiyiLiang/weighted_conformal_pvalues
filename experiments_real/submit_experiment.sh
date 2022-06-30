@@ -4,19 +4,19 @@ SETUP=1
 
 if [[ $SETUP == 1 ]]; then
 #  DATA_LIST=("musk" "arrhythmia" "speech" "annthyroid" "mammography")
-  #DATA_LIST=("cifar-100") # cifar-10
-  DATA_LIST=("mammography")
+  DATA_LIST=("images_flowers") # cifar-10
+  #DATA_LIST=("mammography")
   #DATA_LIST=("shuttle")
   #DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
-  N_IN_LIST=(1000 10000) # 1000 2000) # 5000)
-  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200) # 1000 2000) # 5000)
-  SEED_LIST=$(seq 1 100)
+  N_IN_LIST=(1000) # 1000 2000) # 5000)
+  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SEED_LIST=$(seq 21 100)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-02:00:00                    # Time required (20 m)
+TIME=00-00:20:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
