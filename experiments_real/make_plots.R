@@ -14,7 +14,7 @@ if(plot.1) {
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
-        if(startsWith(ifile, "cifar-100_")) {
+        if(startsWith(ifile, "images")) {
             df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
         } else {
             df <- tibble()
@@ -27,7 +27,7 @@ if(plot.1) {
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
-    plot.fdr <- FALSE
+    plot.fdr <- TRUE
 
     if(plot.fdr) {
         results <- results.raw %>%
@@ -41,7 +41,7 @@ if(plot.1) {
         metric.labels <- c("TPR", "FPR")
     }
 
-    alpha.nominal <- 0.1
+    alpha.nominal <- 0.01
     df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 

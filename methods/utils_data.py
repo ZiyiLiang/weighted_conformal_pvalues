@@ -87,67 +87,87 @@ class DataSet:
             dataraw = load_digits()
             X = dataraw['data']
             Y = dataraw['target'] == 0
+            Z = Y
         elif data_name=="mnist":
             dataset = fetch_openml_cached('mnist_784')
             #mnist = fetch_openml('mnist_784', cache=True)
             X = np.array(dataset.data)
             Y = np.array(dataset.target).astype(int)
             Y = (Y!=3).astype(int)
+            Z = Y
 
         elif data_name=="images":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
+            Z = Y
             X = np.array(data_raw.iloc[:,1:])
+
+        elif data_name=="images_flowers":
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
+            Y = np.array(data_raw.iloc[:,0])
+            X = np.array(data_raw.iloc[:,1:])
+            labels_inlier = ["daisy"]
+            labels_outlier_train = ["dandelion","sunflowers"]
 
         elif data_name=="fashion-MNIST":
             dataset = fetch_openml_cached('Fashion-MNIST', version=1)
             #mnist = fetch_openml('mnist_784', cache=True)
             X = np.array(dataset.data)
             Y = np.array(dataset.target).astype(int)
-            pdb.set_trace()
-            
+            Z = Y
+            pdb.set_trace() 
+           
         elif data_name=="covtype":
             dataraw = fetch_covtype()
             X = dataraw['data']
             Y = dataraw['target'] == 1
+            Z = Y
         elif data_name=="toxicity":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
             Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
             X = np.array(data_raw.iloc[:,:-1])
+            Z = Y
         elif data_name=="ad":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
             data_raw = data_raw.fillna(data_raw.median())
             Y = (np.array(data_raw.iloc[:,-1])=='ad.').astype(int)
             X = np.array(data_raw.iloc[:,:-1])
+            Z = Y
         elif data_name=="androgen":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=";", header=None)
             Y = (np.array(data_raw.iloc[:,-1])=='positive').astype(int)
             X = np.array(data_raw.iloc[:,:-1])
+            Z = Y
         elif data_name=="rejafada":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None).iloc[:,1:]
             Y = (np.array(data_raw.iloc[:,0])=='M').astype(int)
             X = np.array(data_raw.iloc[:,1:])
+            Z = Y
         elif data_name=="hepatitis":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
             data_raw = data_raw.fillna(data_raw.median())
             Y = (np.array(data_raw.iloc[:,0])==1).astype(int)
             X = np.array(data_raw.iloc[:,1:])
+            Z = Y
         elif data_name=="ctg":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None, na_values=['?','     ?','   ?'])
             data_raw = data_raw.fillna(data_raw.median())
             Y = (np.array(data_raw.iloc[:,-1])==2).astype(int)
             X = np.array(data_raw.iloc[:,:-1])
+            Z = Y
         elif data_name=="creditcard":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
             data_raw = data_raw.fillna(data_raw.median())
             Y = (np.array(data_raw.iloc[:,-1])==1).astype(int)
             X = np.array(data_raw.iloc[:,:-1])
+            Z = Y
         elif data_name=="seizures":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
             #idx_keep = np.where(data_raw.iloc[:,-1]!=1)[0]
             idx_keep = np.arange(data_raw.shape[0])
             Y = (np.array(data_raw.iloc[idx_keep,-1])!=1).astype(int)
             X = np.array(data_raw.iloc[idx_keep,1:-1])
+            Z = Y
         elif data_name=="splice":
             base_path = "../experiments_real/data/"
             data_raw = pd.pandas.read_csv(base_path + "splice.data", header=None, sep=",")
@@ -177,6 +197,7 @@ class DataSet:
             X = [ one_hot_encoder(string_to_array(x)).flatten() for x in X_raw]
             X = np.stack(X)
             Y = np.array(data_raw.iloc[:,0]=="IE").astype(int)
+            Z = Y
 
         elif data_name=="cifar-100":
             def unpickle(file):
@@ -205,6 +226,7 @@ class DataSet:
             Y = Y[idx_keep]
             X = X.astype(float)
             Y = ((Y==14)==0).astype(int)
+            Z = Y
         
         elif data_name=="cifar-10":
             cifar_10_dir = "../experiments_real/data/cifar-10"
@@ -212,28 +234,52 @@ class DataSet:
             idx_keep = np.where((Y==0)+(Y==3)+(Y==4)+(Y==5)+(Y==6)+(Y==7)>0)[0]
             X = X[idx_keep]
             Y = (Y[idx_keep] == 0).astype(int)
+            Z = Y
             
         else:
             X, Y = self._load_outlier_data(base_path, data_name + ".mat")
-        print("Loaded data set with {:d} samples: {:d} inliers, {:d} outliers.".format(len(Y), np.sum(Y==0), np.sum(Y==1)))
+            Z = Y
 
-        # Extract test set
+        is_inlier = np.array([y in labels_inlier for y in Y]).astype(int)
+        is_outlier = 1-is_inlier
+        is_outlier_train = np.array([y in labels_outlier_train for y in Y]).astype(int)
+    
+        print("Loaded data set with {:d} samples: {:d} inliers and {:d} outliers, of which {:d} are available for training."\
+              .format(len(Y), np.sum(is_inlier), np.sum(is_outlier), np.sum(is_outlier_train)))
+
+        # Define test set
         if random_state is not None:
             np.random.seed(random_state)            
-        idx_in = np.where(Y==0)[0]
-        idx_out = np.where(Y==1)[0]
-        n_test_out = 100
-        n_test_out = np.minimum(n_test_out, int(len(idx_out)/5))
-        idx_test_out = np.random.choice(idx_out, n_test_out, replace=False)
-        idx_test_in = np.random.choice(idx_in, np.minimum(len(idx_in), len(idx_test_out)), replace=False)
-        idx_test = np.append(idx_test_out, idx_test_in)
-        idx_train = np.setdiff1d(np.arange(len(Y)), idx_test)
-        np.random.shuffle(idx_train)
+
+        # Define list of inliers
+        idx_in = np.where((is_outlier==0))[0]
+
+        # Separate the outliers
+        idx_train_out = np.where((is_outlier==1)*(is_outlier_train==1)==1)[0]
+        idx_test_out = np.where((is_outlier==1)*(is_outlier_train==0)==1)[0]
+        n_test_out = len(idx_test_out)
+
+        # Separate the inliers
+        n_test_in = np.minimum(n_test_out, int(len(idx_in)/5))
+        n_test_out = n_test_in
+        idx_test_in = np.random.choice(idx_in, n_test_in, replace=False)
+        idx_test_out = np.random.choice(idx_test_out, n_test_out, replace=False)
+        idx_train_in = np.setdiff1d(idx_in, idx_test_in)
+
+        # Define test set
+        idx_test = np.append(idx_test_in, idx_test_out)
         np.random.shuffle(idx_test)
+
+        # Define training set
+        idx_train = np.append(idx_train_in, idx_train_out)
+        np.random.shuffle(idx_train)
+
+        # Extract test set
         self.X = X[idx_train]
-        self.Y = Y[idx_train]
+        self.Y = is_outlier[idx_train]
         self.X_test = X[idx_test]
-        self.Y_test = Y[idx_test]
+        self.Y_test = is_outlier[idx_test]
+        self.n_in = np.sum(self.Y==0)
         self.n_out = np.sum(self.Y==1)
 
     def _load_outlier_data(self, base_path, filename, sep=","):
