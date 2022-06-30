@@ -14,7 +14,7 @@ if(plot.1) {
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
-        if(startsWith(ifile, "images_")) {
+        if(startsWith(ifile, "covtype")) {
             df <- read_delim(sprintf("%s/%s", idir, ifile), delim=",", col_types=cols())
         } else {
             df <- tibble()
@@ -22,7 +22,7 @@ if(plot.1) {
     }))
 
     method.values <- c("Ensemble", "Ensemble (one-class)", "Ensemble (one-class, unweighted)",  "Ensemble (mixed, unweighted)", "One-Class", "Binary")
-    method.labels <- c("Integrative", "Integrative(one-class)", "Integrative (binary, unweighted)", "Integrative (unweighted)", "OCC (oracle)", "Binary (oracle)")
+    method.labels <- c("Integrative", "Integrative (one-class)", "Ensemble (one-class, unweighted)", "Integrative (unweighted)", "OCC (oracle)", "Binary (oracle)")
     color.scale <- c("darkviolet", "darkviolet", "deeppink", "magenta", "red", "blue", "darkgreen", "green")
     shape.scale <- c(8, 8, 17, 15, 3, 1, 1)
     alpha.scale <- c(0.5, 1, 0.5, 1, 0.75, 0.75)
@@ -41,7 +41,7 @@ if(plot.1) {
         metric.labels <- c("TPR", "FPR")
     }
 
-    alpha.nominal <- 0.01
+    alpha.nominal <- 0.1
     df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
@@ -59,7 +59,7 @@ if(plot.1) {
         select(-idx.oracle)
 
     df <- results.fdr.models %>%
-        filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
+        filter(Method %in% c("Ensemble", "Ensemble (one-class)", "Ensemble (one-class, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         rbind(results.fdr.oracle)
     results.fdr.mean <- df %>%
         gather(Power, TypeI, key="Metric", value="Mean") %>%

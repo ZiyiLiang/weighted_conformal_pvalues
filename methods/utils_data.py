@@ -111,21 +111,40 @@ class DataSet:
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
             Y = np.array(data_raw.iloc[:,-1])
             X = np.array(data_raw.iloc[:,:-1])            
-            labels_inlier = [2]
-            labels_outlier_train = [1,4,5,6,7]
-            labels_outlier_test = [3]
+            labels_inlier = [5]
+            labels_outlier_train = [4]
+            labels_outlier_test = [1,2,3,6,7]
 
-        # elif data_name=="digits":
-        #     dataraw = load_digits()
-        #     X = dataraw['data']
-        #     Y = dataraw['target'] == 0
-        #     Z = Y
+        elif data_name=="mammography":
+            mat = loadmat(base_path + "mammography.mat")
+            X = mat['X']
+            Y = mat['y']
+            labels_inlier = [0]
+            labels_outlier_train = []
+            labels_outlier_test = [1]
+            
+        # elif data_name=="seizures":
+        #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
+        #     Y = np.array(data_raw.iloc[:,-1]).astype(int)
+        #     X = np.array(data_raw.iloc[:,1:-1])
+        #     labels_inlier = [5]
+        #     labels_outlier_train = [4]
+        #     labels_outlier_test = [1]
+
+
         # elif data_name=="mnist":
         #     dataset = fetch_openml_cached('mnist_784')
         #     #mnist = fetch_openml('mnist_784', cache=True)
         #     X = np.array(dataset.data)
         #     Y = np.array(dataset.target).astype(int)
-        #     Y = (Y!=3).astype(int)
+        #     labels_inlier = [8]
+        #     labels_outlier_train = [0]
+        #     labels_outlier_test = [1,2,3,4,5,6,7,9]
+
+        # elif data_name=="digits":
+        #     dataraw = load_digits()
+        #     X = dataraw['data']
+        #     Y = dataraw['target'] == 0
         #     Z = Y
 
 
@@ -271,7 +290,12 @@ class DataSet:
 
         # Separate the outliers
         idx_train_out_majority = np.where(is_outlier_train==1)[0]
-        n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(prop_mix*len(idx_train_out_majority)))
+        if len(idx_train_out_majority)>0:
+            n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(prop_mix*len(idx_train_out_majority)))
+        else:
+            n_out_minority = np.sum(is_outlier_test)
+            n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(n_out_minority/2))
+            
         idx_train_out_minority = np.random.choice(np.where(is_outlier_test==1)[0], n_train_out_minority, replace=False)
         idx_train_out = np.append(idx_train_out_majority, idx_train_out_minority)
         idx_test_out = np.where((is_outlier==1)*(is_outlier_train==0)==1)[0]
