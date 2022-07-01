@@ -1,23 +1,38 @@
 #!/bin/bash
 
-SETUP=1
+SETUP=4
 
 if [[ $SETUP == 1 ]]; then
-#  DATA_LIST=("musk" "arrhythmia" "speech" "annthyroid" "mammography")
-#  DATA_LIST=("images_flowers" "images_cars")
+  DATA_LIST=("images_flowers")
+  N_IN_LIST=(1000) 
+  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SEED_LIST=$(seq 1 100)
+
+elif [[ $SETUP == 2 ]]; then
+  DATA_LIST=("images_animals")
+  N_IN_LIST=(1000 10000) 
+  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SEED_LIST=$(seq 11 100)
+
+elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
-  #DATA_LIST=("mammography")
-  #DATA_LIST=("shuttle")
-  #DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
-  N_IN_LIST=(1000) # 1000 2000) # 5000)
+  N_IN_LIST=(5000) 
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
   SEED_LIST=$(seq 1 10)
+
+elif [[ $SETUP == 4 ]]; then
+  DATA_LIST=("annthyroid" "mammography")
+  #DATA_LIST=("shuttle")
+  #DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
+  N_IN_LIST=(10000) # 1000 2000) # 5000)
+  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SEED_LIST=$(seq 1 100)
 
 fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-00:20:00                    # Time required (20 m)
+TIME=00-01:00:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix

@@ -58,57 +58,43 @@ else: # Default parameters
 
 
 # Fixed experiment parameters
-calib_size = 0.25
+calib_size = 0.5
 n_test = 1000
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
 if data_name=="images_flowers":
-    prop_mix = 0.5
+    prop_mix = 0.1
+elif data_name=="images_animals":
+    prop_mix = 0.1
 elif data_name=="images_cars":
-    prop_mix = 0.0
-    
-
-if data_name in ["images_flowers", "images_cars"]:
-    # List of possible one-class classifiers with desired hyper-parameters
-    oneclass_classifiers = {
-        'SVM-rbf': OneClassSVM(kernel='rbf'),
-        'SVM-sig': OneClassSVM(kernel='sigmoid'),
-        'SVM-pol': OneClassSVM(kernel='poly', degree=3),
-        'IF': IsolationForest(random_state=random_state),
-        'LOF': LocalOutlierFactor(novelty=True),
-        'SVM-sgd': SGDOneClassSVM(random_state=random_state)
-    }
-
-    # Define list of possible two-class classifiers with desired hyper-parameters
-    binary_classifiers = {
-        'RF': RandomForestClassifier(random_state=random_state),
-        'KNN': KNeighborsClassifier(),
-        'SVC': SVC(probability=True),
-        'NB' : GaussianNB(),
-        'QDA': QuadraticDiscriminantAnalysis(),
-        'MLP': MLPClassifier(hidden_layer_sizes=(100,100,), random_state=random_state)
-    }
-
+    prop_mix = 0.1
+elif data_name=="covtype":
+    prop_mix = 0.1
+elif data_name=="mammography":
+    prop_mix = 0.1
 else:
-    # List of possible one-class classifiers with desired hyper-parameters
-    oneclass_classifiers = {
-        'SVM-rbf': OneClassSVM(kernel='rbf'),
-    #    'SVM-sig': OneClassSVM(kernel='sigmoid'),
-    #    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
-    #    'IF': IsolationForest(random_state=random_state),
-    #    'LOF': LocalOutlierFactor(novelty=True)
-    }
+    prop_mix = 0.1
 
-    # Define list of possible two-class classifiers with desired hyper-parameters
-    binary_classifiers = {
-    #    'RF': RandomForestClassifier(random_state=random_state),
-    #    'KNN': KNeighborsClassifier(),
-    #    'SVC': SVC(probability=True),
-    #    'NB' : GaussianNB(),
-    #    'QDA': QuadraticDiscriminantAnalysis(),
-        'MLP': MLPClassifier(hidden_layer_sizes=(100,100,), random_state=random_state)
-    }
+# List of possible one-class classifiers with desired hyper-parameters
+oneclass_classifiers = {
+    'SVM-rbf': OneClassSVM(kernel='rbf'),
+    'SVM-sig': OneClassSVM(kernel='sigmoid'),
+    'SVM-pol': OneClassSVM(kernel='poly', degree=3),
+    'IF': IsolationForest(random_state=random_state),
+    'LOF': LocalOutlierFactor(novelty=True),
+    'SVM-sgd': SGDOneClassSVM(random_state=random_state)
+}
+
+# Define list of possible two-class classifiers with desired hyper-parameters
+binary_classifiers = {
+    'RF': RandomForestClassifier(random_state=random_state),
+    'KNN': KNeighborsClassifier(),
+    'SVC': SVC(probability=True),
+    'NB' : GaussianNB(),
+    'QDA': QuadraticDiscriminantAnalysis(),
+    'MLP': MLPClassifier(hidden_layer_sizes=(100,100,), random_state=random_state)
+}
 
 #########################
 # Data-generating model #
@@ -129,7 +115,7 @@ print("Output file: {:s}".format(outfile), end="\n")
 
 if os.path.exists(outfile):
     print("Output file found. Quitting!")
-    exit(0)
+#    exit(0)
 
 # Header for results file
 def add_header(df):
