@@ -130,7 +130,6 @@ class DataSet:
             labels_inlier = [0]
             labels_outlier_train = []
             labels_outlier_test = [1]
-<<<<<<< HEAD
 
         elif data_name=="annthyroid":
             mat = loadmat(base_path + "annthyroid.mat")
@@ -139,8 +138,6 @@ class DataSet:
             labels_inlier = [0]
             labels_outlier_train = []
             labels_outlier_test = [1]
-=======
->>>>>>> 05998337d959b1e99131935b76e836b8aab5c533
             
         # elif data_name=="seizures":
         #     data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",")
