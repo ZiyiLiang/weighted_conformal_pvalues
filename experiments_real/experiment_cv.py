@@ -29,6 +29,9 @@ sys.path.append("../methods")
 
 from models import GaussianMixture, ConcentricCircles, ConcentricCirclesMixture, BinomialModel
 from methods_cv import BinaryConformal, OneClassConformal, IntegrativeConformal
+from methods_split import BinaryConformal as BinaryConformal_split
+from methods_split import OneClassConformal as OneClassConformal_split
+from methods_split import IntegrativeConformal as IntegrativeConformal_split
 
 from util_experiments import eval_pvalues
 from utils_data import DataSet
@@ -58,8 +61,9 @@ else: # Default parameters
 
 
 # Fixed experiment parameters
-n_folds = 10
-n_test = 1000
+n_folds = 5
+calib_size = 0.5
+n_test = 10
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
@@ -109,7 +113,7 @@ n_out = np.minimum(n_out, dataset.n_out)
 ###############
 # Output file #
 ###############
-outfile_prefix = "results/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_seed" + str(random_state)
+outfile_prefix = "results_cv/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
@@ -151,11 +155,55 @@ def run_experiment(dataset, random_state):
     results = pd.DataFrame({})
 
     # Conformal p-values via binary classification
-    print("Running {:d} binary classifiers...".format(len(binary_classifiers)))
+    print("Running {:d} binary classifiers with CV...".format(len(binary_classifiers)))
     sys.stdout.flush()
     for bc_name in tqdm(binary_classifiers.keys()):
         bc = binary_classifiers[bc_name]
         method = BinaryConformal(X_in, X_out, bc, n_folds=n_folds, verbose=False)
+        pvals_test = method.compute_pvalues(X_test)
+        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+        results_tmp["Method"] = "Binary (CV)"
+        results_tmp["Model"] = bc_name
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
+        results = pd.concat([results, results_tmp])
+
+    # Conformal p-values via one-class classification
+    print("Running {:d} one-class classifiers with CV...".format(len(oneclass_classifiers)))
+    sys.stdout.flush()
+    for occ_name in tqdm(oneclass_classifiers.keys()):
+        occ = oneclass_classifiers[occ_name]
+        method = OneClassConformal(X_in, occ, n_folds=n_folds, verbose=False)
+        pvals_test = method.compute_pvalues(X_test)
+        results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+        results_tmp["Method"] = "One-Class (CV)"
+        results_tmp["Model"] = occ_name
+        results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["1/log(n1+1)"] = np.nan
+        results = pd.concat([results, results_tmp])
+
+    ## Conformal p-values via weighted one-class classification and learning ensemble
+    print("Running weighted classifiers with learning ensemble with CV...")
+    sys.stdout.flush()
+    bboxes_one = list(oneclass_classifiers.values())
+    bboxes_two = list(binary_classifiers.values())
+    method = IntegrativeConformal(X_in, X_out,
+                                       bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+                                       n_folds=n_folds, tuning=True, progress=True, verbose=False)
+    pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    results_tmp["Method"] = "Ensemble (CV)"
+    results_tmp["Model"] = "Ensemble"
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*n_folds)+1.0)
+    results = pd.concat([results, results_tmp])
+
+    # Conformal p-values via binary classification
+    print("Running {:d} binary classifiers with split...".format(len(binary_classifiers)))
+    sys.stdout.flush()
+    for bc_name in tqdm(binary_classifiers.keys()):
+        bc = binary_classifiers[bc_name]
+        method = BinaryConformal_split(X_in, X_out, bc, calib_size=calib_size, verbose=False)
         pvals_test = method.compute_pvalues(X_test)
         results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
         results_tmp["Method"] = "Binary"
@@ -165,11 +213,11 @@ def run_experiment(dataset, random_state):
         results = pd.concat([results, results_tmp])
 
     # Conformal p-values via one-class classification
-    print("Running {:d} one-class classifiers...".format(len(oneclass_classifiers)))
+    print("Running {:d} one-class classifiers with split...".format(len(oneclass_classifiers)))
     sys.stdout.flush()
     for occ_name in tqdm(oneclass_classifiers.keys()):
         occ = oneclass_classifiers[occ_name]
-        method = OneClassConformal(X_in, occ, n_folds=n_folds, verbose=False)
+        method = OneClassConformal_split(X_in, occ, calib_size=calib_size, verbose=False)
         pvals_test = method.compute_pvalues(X_test)
         results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
         results_tmp["Method"] = "One-Class"
@@ -179,68 +227,68 @@ def run_experiment(dataset, random_state):
         results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
-    print("Running weighted classifiers with learning ensemble...")
+    print("Running weighted classifiers with learning ensemble with split...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
+    method = IntegrativeConformal_split(X_in, X_out,
                                        bboxes_one=bboxes_one, bboxes_two=bboxes_two,
-                                       n_folds=n_folds, tuning=True, progress=True, verbose=False)
+                                       calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
-    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*n_folds)+1.0)
+    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
     results = pd.concat([results, results_tmp])
 
-    ## Conformal p-values via weighted one-class learning ensemble
-    print("Running weighted classifiers with learning ensemble...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
-                                       bboxes_one=bboxes_one,
-                                       n_folds=n_folds, tuning=True, progress=True, verbose=False)
-    pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (one-class)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
-    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*n_folds)+1.0)
-    results = pd.concat([results, results_tmp])
+    # ## Conformal p-values via weighted one-class learning ensemble
+    # print("Running weighted classifiers with learning ensemble...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                                    bboxes_one=bboxes_one,
+    #                                    n_folds=n_folds, tuning=True, progress=True, verbose=False)
+    # pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (one-class)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    # results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*n_folds)+1.0)
+    # results = pd.concat([results, results_tmp])
 
-    ## Conformal p-values via learning ensemble (no weighting)
-    print("Running weighted classifiers with learning ensemble (without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
-                                  bboxes_one=bboxes_one, bboxes_two=bboxes_two,
-                                  n_folds=n_folds, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (mixed, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
-    results = pd.concat([results, results_tmp])
+    # ## Conformal p-values via learning ensemble (no weighting)
+    # print("Running weighted classifiers with learning ensemble (without weighting)...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                               bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+    #                               n_folds=n_folds, ratio=False, tuning=True, progress=True, verbose=False)
+    # pvals_test = method.compute_pvalues(X_test)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (mixed, unweighted)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.nan
+    # results_tmp["1/log(n1+1)"] = np.nan
+    # results = pd.concat([results, results_tmp])
 
-    ## Conformal p-values via learning ensemble (one-class, no weighting)
-    print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
-                                  bboxes_one=bboxes_one,
-                                  n_folds=n_folds, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (one-class, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
-    results = pd.concat([results, results_tmp])
+    # ## Conformal p-values via learning ensemble (one-class, no weighting)
+    # print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                               bboxes_one=bboxes_one,
+    #                               n_folds=n_folds, ratio=False, tuning=True, progress=True, verbose=False)
+    # pvals_test = method.compute_pvalues(X_test)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (one-class, unweighted)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.nan
+    # results_tmp["1/log(n1+1)"] = np.nan
+    # results = pd.concat([results, results_tmp])
 
     # ## Conformal p-values via binary ensemble (no weighting)
     # print("Running binary classifiers with learning ensemble (without weighting)...")
