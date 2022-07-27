@@ -5,8 +5,8 @@ library(tidyverse)
 plot.1 <- FALSE  # Flowers
 plot.2 <- FALSE  # Animals
 plot.3 <- FALSE  # Cars
-plot.4 <- FALSE  # Tabular
-plot.5 <- TRUE  # Flowers-CV
+plot.4 <- TRUE  # Tabular
+plot.5 <- FALSE  # Flowers-CV
 plot.6 <- FALSE  # Tabular-CV
 
 #############
@@ -544,7 +544,7 @@ if(plot.4) {
         geom_line() +
         geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
 #        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_wrap(.~Data) +
+        facet_wrap(.~Data, scales="free") +
         scale_x_log10() +
         scale_y_continuous(lim=c(0,1)) +
         scale_color_manual(values=color.scale) +
@@ -556,7 +556,7 @@ if(plot.4) {
     pp %>% ggsave(file=sprintf("figures/experiment_real_tabular.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
 
-        df <- results.fdr.models %>%
+    df <- results.fdr.models %>%
         rbind(results.fdr.oracle) %>%
         filter(Method %in% c("Ensemble", "One-Class"))
     df.mean <- df %>%
@@ -590,7 +590,7 @@ if(plot.4) {
         geom_line() +
         ##    geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
 #        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(.~Data) +
+        facet_grid(.~Data, scales="free") +
         scale_x_log10() +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
@@ -639,7 +639,7 @@ if(plot.4) {
         geom_line() +
         ##    geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
 #        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(.~Data) +
+        facet_grid(.~Data, scales="free") +
         scale_x_log10() +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +

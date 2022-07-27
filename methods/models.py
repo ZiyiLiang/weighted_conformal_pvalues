@@ -115,10 +115,10 @@ class BinomialModel(DataModel):
         X = np.random.normal(0, 1, (n,self.p))
         X[:,0] = np.random.uniform(low=0, high=1, size=(n,))
         factor = 0.1
-        idx_1 = np.where(X[:,0]<=factor)[0]
-        idx_2 = np.where(X[:,0]>factor)[0]
-        X[idx_1,0] = 0
-        X[idx_2,0] = 0
+        #idx_1 = np.where(X[:,0]<=factor)[0]
+        #idx_2 = np.where(X[:,0]>factor)[0]
+        #X[idx_1,0] = 0
+        #X[idx_2,0] = 0
         return X
 
     def compute_prob(self, X, offset):

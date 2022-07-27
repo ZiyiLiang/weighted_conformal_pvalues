@@ -6,12 +6,12 @@ plot.1 <- FALSE
 plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
-plot.5 <- FALSE
+plot.5 <- TRUE
 plot.6 <- FALSE
 plot.7 <- FALSE
 plot.8 <- FALSE
 plot.9 <- FALSE
-plot.10 <- TRUE
+plot.10 <- FALSE
 
 #############
 ## Setup 1 ##
@@ -176,7 +176,7 @@ if(plot.2) {
                                         #    geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.01) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
         facet_grid(Metric~n) +
-        scale_x_continuous(breaks=c(0,0.25,0.5), labels = scales::number_format(accuracy = 0.01)) +
+        scale_x_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5), labels = scales::number_format(accuracy = 0.1)) +
         scale_y_continuous(lim=c(0,0.85), breaks=c(0,0.25,0.5,0.75), labels = scales::number_format(accuracy = 0.1)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
@@ -471,8 +471,12 @@ if(plot.5) {
         select(-Z, -Power, -TypeI, -TypeI.se) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
                Metric = ifelse(Metric=="Z.se", "Z", Metric))
+
+
+    purity.labs <- c(parse(text=latex2exp::TeX("$n_1=50$")), parse(text=latex2exp::TeX("$n_1=25$")), parse(text=latex2exp::TeX("$n_1=10$")))
     df <- inner_join(df.mean, df.se) %>%
-        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+#        mutate(Purity = sprintf("Inliers: %.2f", Purity))
+        mutate(Purity = factor(Purity, c(0.5,0.75,0.9), purity.labs))
 
     pp <- df %>%
         filter(Data=="circles-mixed", n==200, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
@@ -600,7 +604,7 @@ if(plot.7) {
     }))
 
     key.values <- c("Integrative", "OCC", "OCC-Theory")
-    key.labels <- c("Integrative", "OCC", "OCC(Theory)")
+    key.labels <- c("Integrative", "OCC", "OCC (Theory)")
     color.scale <- c("darkviolet", "deeppink", "black")
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
@@ -612,7 +616,7 @@ if(plot.7) {
         gather(Integrative, OCC, `OCC-Theory`, key="Method", value="Value")
     
     pp <- df %>%
-        mutate(Data = factor(Data, c("circles-mixed", "binomial"), c("Data distribution 1", "Data distribution 2"))) %>%
+        mutate(Data = factor(Data, c("circles-mixed", "binomial"), c("Gaussian mixture", "Binomial"))) %>%
         filter(n>10) %>%
         filter(Method %in% key.values) %>%
         mutate(Method = factor(Method, key.values, key.labels)) %>%
@@ -630,7 +634,7 @@ if(plot.7) {
         xlab("Calibration set size") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_corr_1.pdf"), width=5.5, height=2.5, units="in")
+    pp %>% ggsave(file=sprintf("figures/experiment_corr_1.pdf"), width=5, height=1.75, units="in")
 
 }
 
@@ -825,7 +829,7 @@ if(plot.10) {
         summarise(FDR.se=2*sd(FDP)/sqrt(n()), Power.se=2*sd(Power)/sqrt(n()), FDR=mean(FDP), Power=mean(Power))
     
     data.values <- c("circles-mixed", "binomial")
-    data.labels <- c("Data distribution 1", "Data distribution 2")
+    data.labels <- c("Gaussian mixture", "Binomial")
     method.values <- c("BH-none", "Selective-none", "Selective-median",  "Selective-min")
     method.labels <- c("BH", "Selective", "Selective (LOO, median)", "Selective (LOO, min)")
     color.scale <- c("darkviolet", "darkviolet", "darkviolet", "darkviolet", "darkviolet")
@@ -858,8 +862,8 @@ if(plot.10) {
         filter(Method %in% method.values) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
         mutate(Data = factor(Data, data.values, data.labels)) %>%
-        mutate(`FDR control method` = Method) %>%
-        ggplot(aes(x=n, y=Mean, color=`FDR control method`, shape=`FDR control method`, alpha=`FDR control method`)) +
+        mutate(`Method for FDR control` = Method) %>%
+        ggplot(aes(x=n, y=Mean, color=`Method for FDR control`, shape=`Method for FDR control`, alpha=`Method for FDR control`)) +
         geom_point() +
         geom_line() +
                                         #        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
