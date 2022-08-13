@@ -6,12 +6,12 @@ plot.1 <- FALSE
 plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
-plot.5 <- TRUE
+plot.5 <- FALSE
 plot.6 <- FALSE
 plot.7 <- FALSE
 plot.8 <- FALSE
 plot.9 <- FALSE
-plot.10 <- FALSE
+plot.10 <- TRUE
 
 #############
 ## Setup 1 ##
@@ -830,8 +830,10 @@ if(plot.10) {
     
     data.values <- c("circles-mixed", "binomial")
     data.labels <- c("Gaussian mixture", "Binomial")
-    method.values <- c("BH-none", "Selective-none", "Selective-median",  "Selective-min")
-    method.labels <- c("BH", "Selective", "Selective (LOO, median)", "Selective (LOO, min)")
+    ##method.values <- c("BH-none", "Selective-none", "Selective-median",  "Selective-min")
+    ##method.labels <- c("BH", "Selective", "Selective (LOO, median)", "Selective (LOO, min)")
+    method.values <- c("BH-none", "Selective-none")
+    method.labels <- c("BH", "Conditional calibration")
     color.scale <- c("darkviolet", "darkviolet", "darkviolet", "darkviolet", "darkviolet")
     shape.scale <- c(8, 17, 15, 3, 1, 1)
     alpha.scale <- c(0.33, 1, 1, 1)

@@ -118,4 +118,10 @@ class IntegrativeConformalFDR:
         pvals = self.ic.compute_pvalues(X_test, return_prepvals=False)
         rejected, _, _, _ = multipletests(pvals, alpha=alpha, method='fdr_bh')
         return rejected
+
+    def filter_fdr_by(self, X_test, alpha):
+        n = X_test.shape[0]
+        pvals = self.ic.compute_pvalues(X_test, return_prepvals=False)
+        rejected, _, _, _ = multipletests(pvals, alpha=alpha, method='fdr_by')
+        return rejected
         
