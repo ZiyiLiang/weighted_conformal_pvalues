@@ -187,9 +187,9 @@ def run_experiment(dataset, random_state):
     results = pd.concat([results, results_tmp])
 
     # Apply the regular BY
-    reject_by = icfdr.filter_fdr_bh(X_test, alpha)
+    reject_by = icfdr.filter_fdr_by(X_test, alpha)
     fdp_by, power_by = eval_discoveries(reject_by, Y_test)
-    results_tmp = pd.DataFrame({"Method":["BY"], "FDP":[fdp_bh], "Power":[power_bh], "LOO":["none"], "Pruned":[False]})
+    results_tmp = pd.DataFrame({"Method":["BY"], "FDP":[fdp_by], "Power":[power_by], "LOO":["none"], "Pruned":[False]})
     results = pd.concat([results, results_tmp])
 
     return results
