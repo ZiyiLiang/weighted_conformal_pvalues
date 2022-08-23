@@ -3,17 +3,44 @@ import copy
 import sys
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from scipy.stats import ranksums
 import warnings
-import pdb
 
 from methods_util import conformalize_scores
 
 class IntegrativeConformal:
-    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None,
+    '''Class used for computing the integrative conformal p-values'''
+    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None,
                  calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
-        self.tuning = True
+        '''Pre compute the conformity scores using specified occ/bc for the calibration points
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        X_out:          array_like
+                        outlier data
+        bboxes_one:     list
+                        list of one class black boxes
+        bboxes_one_out: list
+                        list of one class black boxes for outlier data
+        bboxes_two:     list
+                        list of binary black boxes
+        calib_size:     float
+                        proportion of data points used for calibration, default value is 0.5
+        random_state:   int
+                        ensure replicability, default value is 2022
+        ratio:          bool
+                        If True, use weighted p-values, default value is True
+        tuning:         bool
+                        If True, automatically tune the conformity scores so that the outliers have smaller scores,
+                        default value is True
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        progress:       bool
+                        If True, display progress bar, default is True
+        '''
+        self.tuning = tuning
         self.verbose = verbose
         self.progress = progress
         self.ratio = ratio
@@ -34,10 +61,6 @@ class IntegrativeConformal:
             X_out_train = np.zeros((1,X_in_train.shape[1]))
             X_out_calib = np.zeros((1,X_in_train.shape[1]))
 
-        n_in_train = X_in_train.shape[0]
-        n_out_train = X_out_train.shape[0]
-        X_train = np.concatenate([X_in_train, X_out_train],0)
-        Y_train = np.concatenate([[0]*n_in_train, [1]*n_out_train])
         n_in_train = X_in_train.shape[0]
         n_out_train = X_out_train.shape[0]
         X_train = np.concatenate([X_in_train, X_out_train],0)
@@ -140,12 +163,14 @@ class IntegrativeConformal:
             sys.stdout.flush()
 
     def _calibrate_in(self, score_test):
+        '''Compute the standard conformal p-values calibrated by the inliers.'''
+
         n_calib_in = self.scores_in_calib_one.shape[1]
         n_calib_out = self.scores_out_calib_one.shape[1]
         num_boxes = self.num_boxes_one + self.num_boxes_two
-        scores = np.zeros((num_boxes,n_calib_in+1))
+        scores = np.zeros((num_boxes,n_calib_in+1))     
         scores_out = np.zeros((num_boxes,n_calib_out))
-        score_contrast = np.zeros((num_boxes,))
+        score_contrast = np.zeros((num_boxes,)) 
 
         for b in range(self.num_boxes_one):
             scores_out[b] = self.scores_inout_calib_one[b]
@@ -164,6 +189,7 @@ class IntegrativeConformal:
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
+                # Determine the seperation of inlier scores and outlier scores
                 score_contrast[b] = ranksums(scores[b], scores_out[b])[0]
 
         for b in range(self.num_boxes_two):
@@ -183,10 +209,12 @@ class IntegrativeConformal:
         scores_star = scores[b_star]
 
         # Compute conformal p-values using the scores from the best model
-        pvals = conformalize_scores(scores_star, scores_star, offset=0)
+        pvals = conformalize_scores(scores_star, scores_star, offset=0)  # Offset set to 0 since test point is included in the calibration scores.
         return pvals
 
     def _calibrate_out(self, score_test):
+        '''Compute the standard conformal p-values calibrated by the outliers.'''
+
         n_calib_in = self.scores_in_calib_one.shape[1]
         n_calib_out = self.scores_out_calib_one.shape[1]
         num_boxes = self.num_boxes_one_out + self.num_boxes_two
@@ -211,6 +239,7 @@ class IntegrativeConformal:
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
+                # Determine the seperation of inlier scores and outlier scores
                 score_contrast[b] = ranksums(scores_cal[b], scores[b])[0]
 
         for b in range(self.num_boxes_two):
@@ -220,6 +249,7 @@ class IntegrativeConformal:
             scores[b_tot] = np.append(self.scores_in_calib_two[b], score_test[b_tot])
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
+                # Determine the seperation of inlier scores and outlier scores
                 score_contrast_new = ranksums(scores_cal[b_tot], scores[b_tot])[0]
             if np.isnan(score_contrast_new):
                 score_contrast_new = -np.inf
@@ -235,6 +265,7 @@ class IntegrativeConformal:
         return pvals
 
     def _compute_pvalue(self, score_in_test, score_out_test):
+        '''Compute the integrative conformal p-value for one test point.'''
         pvals_0 = self._calibrate_in(score_in_test)
         if self.ratio:
             pvals_1 = self._calibrate_out(score_out_test)
@@ -243,9 +274,11 @@ class IntegrativeConformal:
         scores = pvals_0 / pvals_1
         # Compute final conformal p-value
         pvals = conformalize_scores(scores, scores, offset=0)
+        # return the integrative conformal p-value and two pre p-vals for the test point
         return pvals[-1], pvals_0[-1], pvals_1[-1]
 
     def compute_pvalues(self, X_test, return_prepvals=False):
+        '''Compute the integrative conformal p-values for all test points.'''
         n_test = X_test.shape[0]
         num_boxes = self.num_boxes_one + self.num_boxes_two
         num_boxes_out = self.num_boxes_one_out + self.num_boxes_two

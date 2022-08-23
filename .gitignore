@@ -8,3 +8,6 @@ results/
 conditional-conformal-pvalues/
 cqr/
 cqr/comparison
+
+coras_code_for_synthetic_data/
+experiments_real_cora/
