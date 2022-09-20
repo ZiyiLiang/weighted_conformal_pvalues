@@ -1,22 +1,48 @@
 import numpy as np
 import copy
 import sys
-from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from scipy.stats import ranksums
 import warnings
-import pdb
 
 from methods_util import conformalize_scores
 
 class IntegrativeConformal:
-    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None, bboxes_two_out=None,
+    '''Class used for computing the integrative conformal p-values with transductive cross-validation+'''
+    def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None,
                  n_folds=5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
+        '''Initialize OCC/BC models 
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        X_out:          array_like
+                        outlier data
+        bboxes_one:     list
+                        list of one class black boxes
+        bboxes_one_out: list
+                        list of one class black boxes for outlier data
+        bboxes_two:     list
+                        list of binary black boxes
+        n_folds:        int
+                        number of cross validation folds
+        random_state:   int
+                        ensure replicability, default value is 2022
+        ratio:          bool
+                        If True, use weighted p-values, else use standard conformal p-values, default value is True
+        tuning:         bool
+                        If True, automatically tune the conformity scores so that the outliers have smaller scores,
+                        default value is True
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        progress:       bool
+                        If True, display progress bar, default is True
+        '''
         assert n_folds > 1
 
-        self.tuning = True
+        self.tuning = tuning
         self.verbose = verbose
         self.progress = progress
         self.ratio = ratio
@@ -100,7 +126,8 @@ class IntegrativeConformal:
         self.num_boxes_two = len(self.bboxes_two)
         
 
-    def compute_pvalue_single(self, X_test, return_prepvals=False):
+    def compute_pvalue_single(self, X_test):
+        '''Compute the integrative conformal p-value for one test point.'''
         def _calibrate_in():
             # Augment the inlier data with the test point
             X_intest = np.concatenate([self.X_in, X_test],0)
@@ -130,7 +157,7 @@ class IntegrativeConformal:
             num_boxes = self.num_boxes_one_in + self.num_boxes_two
             scores_caltest = np.zeros((num_boxes,X_intest.shape[0]))
 
-            # Compute calibration scores for inliers using one-class inlier models
+            # Compute calibration scores for inliers using one-class inlier models in each fold
             for b in range(self.num_boxes_one_in):
                 for k in range(self.n_folds):
                     cal_idx = self.folds_in[k][1]
@@ -140,7 +167,7 @@ class IntegrativeConformal:
                         scores_caltest[b,cal_idx] = 1
                     scores_caltest[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
 
-            # Compute calibration scores for inliers using binary models
+            # Compute calibration scores for inliers using binary models in each fold
             for b2 in range(self.num_boxes_two):
                 b = b2 + self.num_boxes_one_in
                 for k in range(self.n_folds):
@@ -151,10 +178,10 @@ class IntegrativeConformal:
                         scores_caltest[b,cal_idx] = 1
                     scores_caltest[b,cal_idx] += np.random.normal(loc=0, scale=1e-6, size=(len(cal_idx),))
 
-            # Initialize calibration scores for outliers using all inlier models
+            # Initialize calibration scores for outliers using all inlier models, note that these scores are for model selection
             scores_out = np.zeros((num_boxes,self.n_folds,self.X_out.shape[0]))
 
-            # Compute calibration scores for outliers using one-class inliers models
+            # Compute calibration scores for outliers using one-class inliers models in each fold
             for b in range(self.num_boxes_one_in):
                 for k in range(self.n_folds):
                     try:
@@ -163,7 +190,7 @@ class IntegrativeConformal:
                         scores_out[b,k] = 1
                     scores_out[b,k] += np.random.normal(loc=0, scale=1e-6, size=(self.X_out.shape[0],))
 
-            # Compute calibration scores for outliers using binary models
+            # Compute calibration scores for outliers using binary models in each fold
             for b2 in range(self.num_boxes_two):
                 b = b2 + self.num_boxes_one_in
                 for k in range(self.n_folds):
@@ -189,16 +216,17 @@ class IntegrativeConformal:
                     if median_caltest < median_out:
                         scores_caltest[b] = - scores_caltest[b]
                         scores_out[b] = - scores_out[b]
-                # Compute score contrast
+                # Compute score contrast for each fold
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     for k in range(self.n_folds):
                         cal_idx = self.folds_in[k][1]
                         score_contrast[b] += ranksums(scores_caltest[b][cal_idx], scores_out[b,k])[0]
 
-            # Pick the best OCC model
+            # Pick the best model
             b_star = np.argmax(score_contrast)
-            print("Best model for inliers: {:d}".format(b_star))
+            if self.verbose:
+                print("Best model for inliers: {:d}".format(b_star))
 
             # Compute the preliminary p-values using the best inlier model
             pvals = conformalize_scores(scores_caltest[b_star], scores_caltest[b_star], offset=0)
@@ -220,7 +248,8 @@ class IntegrativeConformal:
             score_contrast = np.zeros((self.num_boxes_one_out,))
             for b in range(self.num_boxes_one_out):
                 scores_intest = np.concatenate([self.scores_outin_calib_one[b],scores_test[b,None].T],1)
-                # Change the direction of the scores, if necessary
+                # Change the direction of the scores, if necessary, recall that scores are already
+                # calculated in the class initialization stage
                 if self.tuning:
                     median_cal = 0
                     median_intest = 0
@@ -245,16 +274,19 @@ class IntegrativeConformal:
                         scores_cal = self.scores_out_calib_one[b][cal_idx]
                         score_contrast[b] += ranksums(scores_cal, scores_intest[k])[0]
 
-            # Pick the best OCC model
-            b_star = np.argmax(score_contrast)              
-            print("Best model for outliers: {:d}".format(b_star))
+            # Pick the best model
+            b_star = np.argmax(score_contrast) 
+            if self.verbose:             
+                print("Best model for outliers: {:d}".format(b_star))
 
-            # Compute the preliminary p-values using the best outlier model
+            # Choose the scores from the best outlier model
             scores_cal = self.scores_out_calib_one[b_star]
             scores_intest = np.concatenate([self.scores_outin_calib_one[b_star],scores_test[b_star,None].T],1)
             pvals = -np.ones((self.X_in.shape[0]+1,))
+            # Compute preliminairy p-values for inliers and test point one at a time
             for i in range(len(pvals)):
                 scores_test_tmp = -np.ones((self.X_out.shape[0],))
+                # Compare infold scores
                 for k in range(self.n_folds):
                     fold = self.folds_out[k][1]
                     scores_test_tmp[fold] = scores_intest[k][i]
@@ -278,6 +310,7 @@ class IntegrativeConformal:
 
 
     def compute_pvalues(self, X_test, return_prepvals=False):
+        '''Compute the integrative conformal p-value for all test points.'''
         n_test = X_test.shape[0]
 
         pvals = -np.ones((n_test,))
@@ -300,7 +333,25 @@ class IntegrativeConformal:
 
 
 class BinaryConformal:
+    '''Class used for computing standard conformal p-values with binary classifiers and cross validation+'''
     def __init__(self, X_in, X_out, bbox, n_folds=10, random_state=2022, verbose=True):
+        '''Split the folds, train and compute the calibration scores for each fold
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        X_out:          array_like
+                        outlier data
+        bbox:           class object
+                        a binary classifier
+        n_folds:        int
+                        number of cross validation folds, default value is 10
+        random_state:   int
+                        ensure replicability, default value is 2022
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        '''
         self.verbose = verbose
         self.n_folds = n_folds
         self.bboxes = [copy.deepcopy(bbox) for k in range(self.n_folds)]
@@ -361,7 +412,23 @@ class BinaryConformal:
         return pvals
 
 class OneClassConformal:
+    '''Class used for computing standard conformal p-values with one class classifiers and cross validation+'''
     def __init__(self, X_in, bbox, n_folds=10, random_state=2022, verbose=True):
+        '''Split the folds, train and compute the calibration scores for each fold
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        bbox:           class object
+                        a one class classifier
+        n_folds:        int
+                        number of cross validation folds, default value is 10
+        random_state:   int
+                        ensure replicability, default value is 2022
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        '''
         self.verbose = verbose
         self.n_folds = n_folds
         self.bboxes = [copy.deepcopy(bbox) for k in range(self.n_folds)]

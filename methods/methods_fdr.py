@@ -1,19 +1,17 @@
 import numpy as np
 import copy
-import sys
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import KFold
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from scipy.stats import ranksums
-import warnings
-import pdb
 from statsmodels.stats.multitest import multipletests
 
-from methods_split import IntegrativeConformal
-
 class IntegrativeConformalFDR:
+    '''FDR control with conditional calibration'''
     def __init__(self, ic):
+        '''
+        Parameter:
+        ----------
+        ic:     class object
+                the IntegrativeConformal class
+        '''
         self.ic = ic
 
     def _estimate_R_tilde_single(self, i, j, alpha):
@@ -33,11 +31,12 @@ class IntegrativeConformalFDR:
         scores_in_caltest_one = np.concatenate([scores_in_cal_one, scores_in_test_one],1).T
         scores_in_caltest_two = np.concatenate([scores_in_cal_two, scores_in_test_two],1).T
         scores_outin_caltest_one = np.concatenate([scores_outin_cal_one, scores_out_test_one],1).T
-        # Pick the new calibration scores
+        # Pick the new calibration scores, select all if j=-1
         if j == -1:
             new_scores_in_cal_one = scores_in_caltest_one.T
             new_scores_in_cal_two = scores_in_caltest_two.T
             new_scores_outin_cal_one = scores_outin_caltest_one.T
+        # Else leave the jth score out
         else:
             new_scores_in_cal_one = np.concatenate([scores_in_caltest_one[:j],scores_in_caltest_one[(j+1):]],0).T
             new_scores_in_cal_two = np.concatenate([scores_in_caltest_two[:j],scores_in_caltest_two[(j+1):]],0).T
@@ -48,7 +47,7 @@ class IntegrativeConformalFDR:
         new_ic.scores_in_calib_one = new_scores_in_cal_one
         new_ic.scores_in_calib_two = new_scores_in_cal_two
         new_ic.scores_outin_calib_one = new_scores_outin_cal_one
-        # Compute conformal p-values with the new perturbed scores
+        # Compute conformal p-values with the new perturbed scores, the ith p-value is set to 0
         pvals = np.zeros((n_test,))
         for k in range(n_test):
             if k != i:
@@ -63,12 +62,14 @@ class IntegrativeConformalFDR:
         else:
             n_cal = self.ic.scores_in_calib_one.shape[1]
             n_test = self.ic.scores_in_test.shape[0]
+            # Set maximum number of leave-one-out points
             if J_max is None:
                 J_max = n_test
             else:
                 J_max = np.minimum(J_max,n_cal+1)
             R_tilde_tmp = -np.ones((J_max,))
             j_seq = np.random.choice(n_cal+1, size=J_max, replace=False)
+            # Compute the conformal p-values with leave-one-out calibration set
             for j in range(J_max):
                 R_tilde_tmp[j] = self._estimate_R_tilde_single(i, j_seq[j], alpha)
             if loo=='median':
@@ -79,13 +80,29 @@ class IntegrativeConformalFDR:
                 print("Error: unknown estimation method {:s}".format(loo))
         return R_tilde
 
-    def filter_fdr_conditional(self, X_test, alpha, J_max=None, loo='median'):
+    def filter_fdr_conditional(self, X_test, alpha, J_max=None, loo='median', verbose=True):
+        '''Compute the rejection list by the conditional calibration method
+        
+        Parameters:
+        -----------
+        X_test:     array_like
+                    test points
+        alpha:      float
+                    user specified FDR level
+        J_max:      int
+                    maximum number of leave-one-out points, if not specified, it will be set to the number of test points
+        loo:        str
+                    needs to be either 'median' or 'min', 'median' will use the median number of leave-one-out R-tildes
+                    whereas 'min' uses the minimum.
+        
+        Returns:
+        --------
+        2 returns, first one is a ndarray of booleans, true if the hypothesis is rejected;
+                   second one is a boolean indicating if the rejection is pruned or not.
+        '''
         n = X_test.shape[0]
         # First, compute the integrative conformal p-values
         pvals = self.ic.compute_pvalues(X_test, return_prepvals=False)
-        # Extract the conformity scores for the test points
-        scores_in_test = self.ic.scores_in_test
-        scores_out_test = self.ic.scores_in_test
         # Estimate number of rejections R-tilde for each test point
         R_tilde = -np.ones((n,))
         for i in tqdm(range(n)):
@@ -97,10 +114,12 @@ class IntegrativeConformalFDR:
             return np.array([False]*n), False
         # Check whether we need to prune
         if np.sum([len(R_plus) < R_tilde[i] for i in R_plus]) == 0:
-            print("Pruning is not needed.")
+            if verbose:
+                print("Pruning is not needed.")
             return R_plus_list, False
         else:
-            print("Pruning is needed.")
+            if verbose:
+                print("Pruning is needed.")
             epsilon = np.random.uniform(size=(n,))
             pvals_fake = epsilon[R_plus] * R_tilde[R_plus] / len(R_plus)
             rejected_fake, _, _, _ = multipletests(pvals_fake, alpha=alpha, method='fdr_bh')
@@ -114,12 +133,40 @@ class IntegrativeConformalFDR:
         return None
 
     def filter_fdr_bh(self, X_test, alpha):
+        '''Compute the rejection list by the BH method
+        
+        Parameters:
+        -----------
+        X_test:     array_like
+                    test points
+        alpha:      float
+                    user specified FDR level
+
+        Returns:
+        --------
+        rejected:   ndarray, boolean
+                    true for hypothesis that can be rejected for given alpha
+        '''
         n = X_test.shape[0]
         pvals = self.ic.compute_pvalues(X_test, return_prepvals=False)
         rejected, _, _, _ = multipletests(pvals, alpha=alpha, method='fdr_bh')
         return rejected
 
     def filter_fdr_by(self, X_test, alpha):
+        '''Compute the rejection list by the BY method
+        
+        Parameters:
+        -----------
+        X_test:     array_like
+                    test points
+        alpha:      float
+                    user specified FDR level
+
+        Returns:
+        --------
+        rejected:   ndarray, boolean
+                    true for hypothesis that can be rejected for given alpha
+        '''
         n = X_test.shape[0]
         pvals = self.ic.compute_pvalues(X_test, return_prepvals=False)
         rejected, _, _, _ = multipletests(pvals, alpha=alpha, method='fdr_by')

@@ -12,7 +12,7 @@ class IntegrativeConformal:
     '''Class used for computing the integrative conformal p-values'''
     def __init__(self, X_in, X_out, bboxes_one=None, bboxes_one_out=None, bboxes_two=None,
                  calib_size=0.5, random_state=2022, ratio=True, tuning=True, verbose=True, progress=True):
-        '''Pre compute the conformity scores using specified occ/bc for the calibration points
+        '''Pre compute the conformity scores using specified OCC/BC for the calibration points
         
         Parameters:
         -----------
@@ -31,7 +31,7 @@ class IntegrativeConformal:
         random_state:   int
                         ensure replicability, default value is 2022
         ratio:          bool
-                        If True, use weighted p-values, default value is True
+                        If True, use weighted p-values, else use standard conformal p-values, default value is True
         tuning:         bool
                         If True, automatically tune the conformity scores so that the outliers have smaller scores,
                         default value is True
@@ -107,7 +107,7 @@ class IntegrativeConformal:
             self.scores_inout_calib_one[b] += np.random.normal(loc=0, scale=1e-6, size=self.scores_inout_calib_one[b].shape)
 
         for b in range(self.num_boxes_one_out):
-            # Scores for outlier calibration data using outlier model
+            # Scores for outlier calibration data using outlier one-class model
             try:
                 self.scores_out_calib_one[b] = self.bboxes_one_out[b].score_samples(X_out_calib)
             except:
@@ -311,7 +311,7 @@ class IntegrativeConformal:
             except:
                 self.scores_out_test[:,b_tot] = 1
             self.scores_out_test[:,b_tot] += np.random.normal(loc=0, scale=1e-6, size=self.scores_out_test[:,b_tot].shape)
-
+        
         if self.progress:
             iterator = tqdm(range(n_test))
         else:
@@ -320,6 +320,7 @@ class IntegrativeConformal:
         pvals = -np.ones((n_test,))
         pvals_0 = -np.ones((n_test,))
         pvals_1 = -np.ones((n_test,))
+        # Compute integrative conformal p-values for all test points
         for i in iterator:
             pvals[i], pvals_0[i], pvals_1[i] = self._compute_pvalue(self.scores_in_test[i], self.scores_out_test[i])
 
@@ -330,7 +331,23 @@ class IntegrativeConformal:
 
 
 class OneClassConformal:
+    '''Class used for computing standard conformal p-values with one class classifiers'''
     def __init__(self, X_in, bbox, calib_size=0.5, random_state=2022, verbose=True):
+        '''Train and compute the calibration scores
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        bbox:           class object
+                        a one class classifier
+        calib_size:     float
+                        proportion of data points used for calibration, default value is 0.5
+        random_state:   int
+                        ensure replicability, default value is 2022
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        '''
         self.bbox = copy.deepcopy(bbox)
         self.verbose = verbose
 
@@ -372,19 +389,38 @@ class OneClassConformal:
             print("done.")
             sys.stdout.flush()
 
+        # Compute conformal p-values for all test points
         pvals = conformalize_scores(self.scores_cal, scores_test, offset=1)
         return pvals
 
 
 class BinaryConformal:
+    '''Class used for computing standard conformal p-values with binary classifiers'''
     def __init__(self, X_in, X_out, bbox, calib_size=0.5, random_state=2022, verbose=True):
+        '''Train and compute the calibration scores
+        
+        Parameters:
+        -----------
+        X_in:           array_like
+                        inlier data
+        X_out:          array_like
+                        outlier data
+        bbox:           class object
+                        a binary classifier
+        calib_size:     float
+                        proportion of data points used for calibration, default value is 0.5
+        random_state:   int
+                        ensure replicability, default value is 2022
+        verbose:        bool
+                        If True, print messages when training black boxes, default is True
+        '''
         self.bbox = copy.deepcopy(bbox)
         self.verbose = verbose
 
-        # Split data into training and calibration subsets
+        # Split data into training and calibration subsets, calibration set contains only inlier data
         X_in_train, X_in_calib = train_test_split(X_in, test_size=calib_size, random_state=random_state)
 
-        # Train and calibrate the model
+        # Train and calibrate the model, all outlier data are used for training
         self._train_calibrate(X_in_train, X_out, X_in_calib)
 
 

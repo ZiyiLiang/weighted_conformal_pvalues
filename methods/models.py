@@ -1,10 +1,6 @@
 import numpy as np
-from scipy.stats import multivariate_normal
 from sklearn.model_selection import train_test_split
 from scipy import optimize
-import scipy.special as sp
-
-import pdb
 
 class DataModel:
     def __init__(self, p, amplitude, random_state=None):
@@ -78,7 +74,6 @@ class ConcentricCircles2(DataModel):
 
 
 class ConcentricCirclesMixture(DataModel):
-    "This seems unecessarily complicated"
     def __init__(self, p, amplitude, random_state=None):
         super().__init__(p, amplitude, random_state=random_state)
         self.Z = np.random.uniform(low=-3, high=3, size=(p,p))
@@ -114,11 +109,6 @@ class BinomialModel(DataModel):
     def sample_X(self, n):
         X = np.random.normal(0, 1, (n,self.p))
         X[:,0] = np.random.uniform(low=0, high=1, size=(n,))
-        factor = 0.1
-        #idx_1 = np.where(X[:,0]<=factor)[0]
-        #idx_2 = np.where(X[:,0]>factor)[0]
-        #X[idx_1,0] = 0
-        #X[idx_2,0] = 0
         return X
 
     def compute_prob(self, X, offset):
