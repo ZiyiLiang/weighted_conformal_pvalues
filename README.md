@@ -1,2 +1,4 @@
 # weighted_conformal_pvalues
- Asymmetric binary classification with adaptively weighted conformal p-values
+Integrative conformal p-values for out-of-distribution testing with labeled outliers. We present the implementation of the novel conformal inference methods for out-of-distribution testing that leverage side information from labeled outliers, which are commonly underutilized or even discarded by conventional conformal p-values. Blending inductive and transductive conformal inference strategies in a principled way, our methods are computationally efficient and can automatically take advantage of the most powerful model from a collection of one-class and binary classifiers. 
+Then, we study how to control the false discovery rate in multiple testing with a conditional calibration strategy. 
+Simulations with synthetic and real data show the proposed integrative conformal p-values outperforms existing methods.
