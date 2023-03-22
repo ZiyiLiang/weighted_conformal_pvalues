@@ -83,7 +83,7 @@ def load_cifar_10_data(data_dir, negatives=False):
 
 class DataSet:
 
-    def __init__(self, base_path, data_name, random_state=None, prop_mix=0.5, outlier_shift=0):
+    def __init__(self, base_path, data_name, random_state=None, outlier_shift=0):
         self.outlier_shift = outlier_shift
         self.outlier_train_group = None
 

@@ -6,20 +6,23 @@ if [[ $SETUP == 1 ]]; then
   DATA_LIST=("images_flowers")
   N_IN_LIST=(1000) 
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0)
   SEED_LIST=$(seq 1 100)
-
+  
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("images_animals")
 #  N_IN_LIST=(1000 10000) 
   N_IN_LIST=(1000) 
 #  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
   N_OUT_LIST=(1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0 0.5)
   SEED_LIST=$(seq 1 1)
 
 elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
   N_IN_LIST=(5000) 
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0)
   SEED_LIST=$(seq 1 10)
 
 elif [[ $SETUP == 4 ]]; then
@@ -28,6 +31,7 @@ elif [[ $SETUP == 4 ]]; then
   #DATA_LIST=("toxicity" "ad" "androgen" "rejafada")
   N_IN_LIST=(10000) # 1000 2000) # 5000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0)
   SEED_LIST=$(seq 1 100)
 
 fi
@@ -53,30 +57,31 @@ for SEED in $SEED_LIST; do
   for DATA in "${DATA_LIST[@]}"; do
     for N_IN in "${N_IN_LIST[@]}"; do
       for N_OUT in "${N_OUT_LIST[@]}"; do
+        for SHIFT in "${SHIFT_LIST[@]}"; do
+          JOBN=$DATA"_nin"$N_IN"_nout"$N_OUT"_shift"$SHIFT"_seed"$SEED
+          OUT_FILE=$OUT_DIR"/"$JOBN".txt"
+          COMPLETE=0
+          #ls $OUT_FILE
+          if [[ -f $OUT_FILE ]]; then
+            COMPLETE=1
+          fi
 
-        JOBN=$DATA"_nin"$N_IN"_nout"$N_OUT"_seed"$SEED
-        OUT_FILE=$OUT_DIR"/"$JOBN".txt"
-        COMPLETE=0
-        #ls $OUT_FILE
-        if [[ -f $OUT_FILE ]]; then
-          COMPLETE=1
-        fi
-
-        if [[ $COMPLETE -eq 0 ]]; then
-          # Script to be run
-          SCRIPT="experiment_shift.sh $DATA $N_IN $N_OUT $SEED"
-          # Define job name for this chromosome
-          OUTF=$LOGS"/"$JOBN".out"
-          ERRF=$LOGS"/"$JOBN".err"
-          # Assemble slurm order for this job
-          ORD=$ORDP" -J "$JOBN" -o "$OUTF" -e "$ERRF" "$SCRIPT
-          # Print order
-          echo $ORD
-          # Submit order
-          #$ORD
-          # Run command now
-          #./$SCRIPT
-        fi
+          if [[ $COMPLETE -eq 0 ]]; then
+            # Script to be run
+            SCRIPT="experiment_shift.sh $DATA $N_IN $N_OUT $SHIFT $SEED"
+            # Define job name for this chromosome
+            OUTF=$LOGS"/"$JOBN".out"
+            ERRF=$LOGS"/"$JOBN".err"
+            # Assemble slurm order for this job
+            ORD=$ORDP" -J "$JOBN" -o "$OUTF" -e "$ERRF" "$SCRIPT
+            # Print order
+            echo $ORD
+            # Submit order
+            #$ORD
+            # Run command now
+            #./$SCRIPT
+          fi
+        done
       done
     done
   done
