@@ -83,7 +83,10 @@ def load_cifar_10_data(data_dir, negatives=False):
 
 class DataSet:
 
-    def __init__(self, base_path, data_name, random_state=None, prop_mix=0.5):        
+    def __init__(self, base_path, data_name, random_state=None, prop_mix=0.5, outlier_shift=0):
+        self.outlier_shift = outlier_shift
+        self.outlier_train_group = None
+
         # Load the data
         if data_name=="images_flowers":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
@@ -92,22 +95,26 @@ class DataSet:
             labels_inlier = ["roses"]
             labels_outlier_train = []
             labels_outlier_test = ["sunflowers","dandelion","daisy","tulips"]
+            label_groups = np.zeros((len(labels_outlier_test,)))
 
         elif data_name=="images_animals":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)            
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["hamster", "guinea pig"]
             labels_outlier_train = []
             labels_outlier_test = ["lynx","wolf","coyote","cheetah","jaguer","chimpanzee","orangutan","cat"]
+            label_groups_dict = {"hamster":0, "guinea pig":0, "lynx":1,"wolf":2,"coyote":2,"cheetah":1,"jaguer":1,"chimpanzee":3,"orangutan":3,"cat":1}
+            self.label_test_group = 2
 
         elif data_name=="images_cars":
-            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)            
+            data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["car"]
             labels_outlier_train = []
             labels_outlier_test = ["fruit", "dog", "motorbike", "person", "cat", "flower", "airplane"]
+            label_groups = np.zeros((len(labels_outlier_test,)))
 
         elif data_name=="mammography":
             mat = loadmat(base_path + "mammography.mat")
@@ -116,6 +123,7 @@ class DataSet:
             labels_inlier = [0]
             labels_outlier_train = []
             labels_outlier_test = [1]
+            label_groups = np.zeros((len(labels_outlier_test,)))
 
         elif data_name=="annthyroid":
             mat = loadmat(base_path + "annthyroid.mat")
@@ -124,57 +132,117 @@ class DataSet:
             labels_inlier = [0]
             labels_outlier_train = []
             labels_outlier_test = [1]
-            
+            label_groups = np.zeros((len(labels_outlier_test,)))
+
         is_inlier = np.array([y in labels_inlier for y in Y]).astype(int)
         is_outlier = 1-is_inlier
         is_outlier_train = np.array([y in labels_outlier_train for y in Y]).astype(int)
         is_outlier_test = np.array([y in labels_outlier_test for y in Y]).astype(int)
+        label_groups = np.array([label_groups_dict[y] for y in Y]).astype(int)
 
         print("Loaded data set with {:d} samples: {:d} inliers and {:d} outliers, of which {:d} are available for training."\
               .format(len(Y), np.sum(is_inlier), np.sum(is_outlier), np.sum(is_outlier_train)))
 
         # Define test set
         if random_state is not None:
-            np.random.seed(random_state)            
+            np.random.seed(random_state)
 
-        # Define list of inliers
-        idx_in = np.where((is_outlier==0))[0]
+        # Define lists of inliers and outliers
+        self.idx_in = np.where((is_outlier==0))[0]
+        self.idx_out = np.where((is_outlier==1))[0]
 
-        # Separate the outliers
-        idx_train_out_majority = np.where(is_outlier_train==1)[0]
-        if len(idx_train_out_majority)>0:
-            n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(prop_mix*len(idx_train_out_majority)))
-        else:
-            n_out_minority = np.sum(is_outlier_test)
-            n_train_out_minority = np.minimum(np.sum(is_outlier_test), int(n_out_minority/2))
-            
-        idx_train_out_minority = np.random.choice(np.where(is_outlier_test==1)[0], n_train_out_minority, replace=False)
-        idx_train_out = np.append(idx_train_out_majority, idx_train_out_minority)
-        idx_test_out = np.setdiff1d(np.where((is_outlier==1)*(is_outlier_train==0)==1)[0],idx_train_out_minority)
-        n_test_out = len(idx_test_out)
-
-        # Separate the inliers
-        n_test_in = np.minimum(n_test_out, int(len(idx_in)/5))
-        n_test_out = n_test_in
-        idx_test_in = np.random.choice(idx_in, n_test_in, replace=False)
-        idx_test_out = np.random.choice(idx_test_out, n_test_out, replace=False)
-        idx_train_in = np.setdiff1d(idx_in, idx_test_in)
-
-        # Define test set
-        idx_test = np.append(idx_test_in, idx_test_out)
-        np.random.shuffle(idx_test)
-
-        # Define training set
-        idx_train = np.append(idx_train_in, idx_train_out)
-        np.random.shuffle(idx_train)
-
-        # Extract test set
-        self.X = X[idx_train]
-        self.Y = is_outlier[idx_train]
-        self.X_test = X[idx_test]
-        self.Y_test = is_outlier[idx_test]
+        self.X = X
+        self.Y = is_outlier
+        self.Y_label = Y
+        self.label_groups = label_groups
         self.n_in = np.sum(self.Y==0)
         self.n_out = np.sum(self.Y==1)
+
+        # self.X_test = X[idx_test]
+        # self.Y_test = is_outlier[idx_test]
+        # self.n_in = np.sum(self.Y==0)
+        # self.n_out = np.sum(self.Y==1)
+        # self.label_groups = label_groups[idx_train]
+        # self.label_groups_test = label_groups[idx_test]   
+
+    def reset(self):
+        # Re-define lists of available inliers and outliers
+        self.idx_in = np.where((self.Y==0))[0]
+        self.idx_out = np.where((self.Y==1))[0]
+
+
+    def sample_test(self, n, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)
+      
+        # List of available inliers and outliers
+        idx_out = self.idx_out
+        idx_in = self.idx_in
+
+        # Determine test weights for the outliers
+        if self.outlier_shift>0:
+            self.label_test_group = 2
+            groups = self.label_groups[idx_out]
+            weights_target = np.zeros((len(idx_out),))
+            idx_target = np.where(groups==self.label_test_group)[0]
+            weights_target[idx_target] = 1
+            p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * weights_target
+            p_test_out = p_test_out / np.sum(p_test_out)
+        else:
+            p_test_out = np.ones((len(idx_out),))
+
+        # Sample the outliers
+        sample_out = np.random.choice(idx_out, n, replace=False, p=p_test_out)      
+
+        # Debug
+        print("Sampled outliers:")
+        print(np.array(np.unique(self.Y_label[sample_out], return_counts=True)).T)
+
+        # Sample the inliers
+        sample_in = np.random.choice(idx_in, n, replace=False)             
+
+        print("Sampled inliers:")
+        print(np.array(np.unique(self.Y_label[sample_in], return_counts=True)).T)
+
+        # Re-define lists of available inliers and outliers
+        self.idx_in = np.setdiff1d(self.idx_in, sample_in)
+        self.idx_out = np.setdiff1d(self.idx_out, sample_out)
+
+        # Output the sampled inliers and outliers
+        idx_sample = np.concatenate((sample_in,sample_out))
+        np.random.shuffle(idx_sample)
+
+        return self.X[idx_sample], self.Y[idx_sample]
+
+        
+    def sample(self, n_in=None, n_out=None, random_state=None):
+        if random_state is not None:
+            np.random.seed(random_state)
+      
+        # List of available inliers and outliers
+        idx_out = self.idx_out
+        idx_in = self.idx_in
+
+        if n_out is None:
+            n_out = len(self.idx_out)
+        if n_in is None:
+            n_in = len(self.idx_in)
+
+        # Sample the outliers
+        sample_out = np.random.choice(idx_out, n_out, replace=False)      
+
+        # Sample the inliers
+        sample_in = np.random.choice(idx_in, n_in, replace=False)             
+
+        # Re-define lists of available inliers and outliers
+        self.idx_in = np.setdiff1d(self.idx_in, sample_in)
+        self.idx_out = np.setdiff1d(self.idx_out, sample_out)
+
+        # Output the sampled inliers and outliers
+        idx_sample = np.concatenate((sample_in,sample_out))
+        np.random.shuffle(idx_sample)
+
+        return self.X[idx_sample], self.Y[idx_sample]
 
     def _load_outlier_data(self, base_path, filename, sep=","):
         if filename.endswith('.csv'):
@@ -203,42 +271,3 @@ class DataSet:
         p = X.shape[1]
         Y = np.array(data_raw["Class"]).astype(int)
         return X, Y
-
-    def sample_test(self, n=None, random_state=None):
-        if random_state is not None:
-            np.random.seed(random_state)
-        if n is None:
-            idx_sample = np.arange(len(self.Y_test))
-        else:
-            n = np.minimum(len(self.Y_test), n)
-            idx_sample = np.random.choice(len(self.Y_test), n)
-        return self.X_test[idx_sample], self.Y_test[idx_sample]
-
-    def sample(self, n_in=None, n_out=None, mislabeled_prop=0, random_state=None):
-        if random_state is not None:
-            np.random.seed(random_state)    
-        if n_out is None:
-            n_out = np.sum(self.Y==1)
-        if n_in is None:
-            n_in = np.sum(self.Y==0)
-        
-        idx_in = np.where(self.Y==0)[0]
-        idx_out = np.where(self.Y==1)[0]
-        n_out = np.minimum(n_out, len(idx_out))
-        n_in = np.minimum(n_in, len(idx_in))
-
-        idx_sample_out = np.random.choice(idx_out, n_out, replace=False)
-        idx_sample_in = np.random.choice(idx_in, n_in, replace=False)
-        Y = self.Y
-        
-        if mislabeled_prop>0:
-            n_out_mis = np.minimum(n_in, int(n_out*mislabeled_prop))
-            idx_sample_in, idx_sample_in_out = train_test_split(idx_sample_in, test_size=n_out_mis, random_state=random_state)
-            idx_sample_out = np.append(idx_sample_out, idx_sample_in_out)
-            Y[idx_sample_in_out] = 1
-        
-        idx_sample = np.append(idx_sample_in, idx_sample_out)
-        np.random.shuffle(idx_sample)
-       
-        return self.X[idx_sample], Y[idx_sample]
-
