@@ -179,29 +179,26 @@ class DataSet:
         idx_out = self.idx_out
         idx_in = self.idx_in
 
-        # Determine test weights for the outliers
+        # Sample the outliers
         if self.outlier_shift>0:
             self.label_test_group = 2
             groups = self.label_groups[idx_out]
-            weights_target = np.zeros((len(idx_out),))
+            is_target = np.zeros((len(idx_out),))
             idx_target = np.where(groups==self.label_test_group)[0]
-            weights_target[idx_target] = 1
-            p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * weights_target
+            is_target[idx_target] = 1
+            p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * is_target
             p_test_out = p_test_out / np.sum(p_test_out) 
             sample_out = np.random.choice(idx_out, n, replace=False, p=p_test_out)      
         else:
             sample_out = np.random.choice(idx_out, n, replace=False)      
 
-        # Sample the outliers
-
-        # Debug
-        print("Sampled outliers:")
-        print(np.array(np.unique(self.Y_label[sample_out], return_counts=True)).T)
-
         # Sample the inliers
         sample_in = np.random.choice(idx_in, n, replace=False)             
 
-        print("Sampled inliers:")
+        # Debug
+        print("Sampled outliers in test set:")
+        print(np.array(np.unique(self.Y_label[sample_out], return_counts=True)).T)
+        print("Sampled inliers in test set:")
         print(np.array(np.unique(self.Y_label[sample_in], return_counts=True)).T)
 
         # Re-define lists of available inliers and outliers
@@ -229,10 +226,26 @@ class DataSet:
             n_in = len(self.idx_in)
 
         # Sample the outliers
-        sample_out = np.random.choice(idx_out, n_out, replace=False)      
+        if self.outlier_shift>0:
+            self.label_test_group = 2
+            groups = self.label_groups[idx_out]
+            is_target = np.zeros((len(idx_out),))
+            idx_target = np.where(groups==self.label_test_group)[0]
+            is_target[idx_target] = 1
+            p_test_out = np.ones((len(idx_out),)) - self.outlier_shift * is_target
+            p_test_out = p_test_out / np.sum(p_test_out) 
+            sample_out = np.random.choice(idx_out, n_out, replace=False, p=p_test_out)      
+        else:
+            sample_out = np.random.choice(idx_out, n_out, replace=False)      
 
         # Sample the inliers
         sample_in = np.random.choice(idx_in, n_in, replace=False)             
+
+        # Debug
+        print("Sampled outliers in train set:")
+        print(np.array(np.unique(self.Y_label[sample_out], return_counts=True)).T)
+        print("Sampled inliers in train set:")
+        print(np.array(np.unique(self.Y_label[sample_in], return_counts=True)).T)
 
         # Re-define lists of available inliers and outliers
         self.idx_in = np.setdiff1d(self.idx_in, sample_in)
