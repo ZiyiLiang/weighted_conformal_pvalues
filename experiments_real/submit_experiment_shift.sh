@@ -14,9 +14,10 @@ elif [[ $SETUP == 2 ]]; then
 #  N_IN_LIST=(1000 10000) 
   N_IN_LIST=(1000) 
 #  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
-  N_OUT_LIST=(1000) # 1000 2000) # 5000)
-  SHIFT_LIST=(0 0.5)
-  SEED_LIST=$(seq 1 1)
+  N_OUT_LIST=(100 1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0 0.25 0.5 0.75)
+#  SHIFT_LIST=(0.5)
+  SEED_LIST=$(seq 1 5)
 
 elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
@@ -77,7 +78,7 @@ for SEED in $SEED_LIST; do
             # Print order
             echo $ORD
             # Submit order
-            #$ORD
+            $ORD
             # Run command now
             #./$SCRIPT
           fi

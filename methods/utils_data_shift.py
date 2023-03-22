@@ -187,12 +187,12 @@ class DataSet:
             idx_target = np.where(groups==self.label_test_group)[0]
             weights_target[idx_target] = 1
             p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * weights_target
-            p_test_out = p_test_out / np.sum(p_test_out)
+            p_test_out = p_test_out / np.sum(p_test_out) 
+            sample_out = np.random.choice(idx_out, n, replace=False, p=p_test_out)      
         else:
-            p_test_out = np.ones((len(idx_out),))
+            sample_out = np.random.choice(idx_out, n, replace=False)      
 
         # Sample the outliers
-        sample_out = np.random.choice(idx_out, n, replace=False, p=p_test_out)      
 
         # Debug
         print("Sampled outliers:")

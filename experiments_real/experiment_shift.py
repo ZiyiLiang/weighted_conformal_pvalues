@@ -185,7 +185,7 @@ def run_experiment(dataset, random_state):
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class learning ensemble
-    print("Running weighted classifiers with learning ensemble...")
+    print("Running weighted classifiers with learning ensemble (one-class)...")
     sys.stdout.flush()
     bboxes_one = list(oneclass_classifiers.values())
     bboxes_two = list(binary_classifiers.values())
