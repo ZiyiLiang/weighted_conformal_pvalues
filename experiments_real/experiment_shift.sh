@@ -9,5 +9,5 @@ module load intel/19.0.4
 
 module load python/3.7.6
 
-python3 experiment_shift.py $1 $2 $3 $4 $5
+python3 experiment_shift.py $1 $2 $3 $4 $5 $6
 

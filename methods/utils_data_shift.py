@@ -83,9 +83,10 @@ def load_cifar_10_data(data_dir, negatives=False):
 
 class DataSet:
 
-    def __init__(self, base_path, data_name, random_state=None, outlier_shift=0):
+    def __init__(self, base_path, data_name, random_state=None, outlier_shift=0, shift_group=1):
         self.outlier_shift = outlier_shift
         self.outlier_train_group = None
+        self.shift_group = shift_group
 
         # Load the data
         if data_name=="images_flowers":
@@ -93,55 +94,47 @@ class DataSet:
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["roses"]
-            labels_outlier_train = []
-            labels_outlier_test = ["sunflowers","dandelion","daisy","tulips"]
-            label_groups = np.zeros((len(labels_outlier_test,)))
+            labels_outlier = ["sunflowers","dandelion","daisy","tulips"]
+            label_groups = np.zeros((len(labels_outlier,)))
 
         elif data_name=="images_animals":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["hamster", "guinea pig"]
-            labels_outlier_train = []
-            labels_outlier_test = ["lynx","wolf","coyote","cheetah","jaguer","chimpanzee","orangutan","cat"]
+            labels_outlier = ["lynx","wolf","coyote","cheetah","jaguer","chimpanzee","orangutan","cat"]
             label_groups_dict = {"hamster":0, "guinea pig":0, "lynx":1,"wolf":2,"coyote":2,"cheetah":1,"jaguer":1,"chimpanzee":3,"orangutan":3,"cat":1}
-            self.label_test_group = 2
 
         elif data_name=="images_cars":
             data_raw = pd.pandas.read_csv(base_path + data_name + ".csv", sep=",", header=None)
             Y = np.array(data_raw.iloc[:,0])
             X = np.array(data_raw.iloc[:,1:])
             labels_inlier = ["car"]
-            labels_outlier_train = []
-            labels_outlier_test = ["fruit", "dog", "motorbike", "person", "cat", "flower", "airplane"]
-            label_groups = np.zeros((len(labels_outlier_test,)))
+            labels_outlier = ["fruit", "dog", "motorbike", "person", "cat", "flower", "airplane"]
+            label_groups = np.zeros((len(labels_outlier,)))
 
         elif data_name=="mammography":
             mat = loadmat(base_path + "mammography.mat")
             X = mat['X']
             Y = mat['y']
             labels_inlier = [0]
-            labels_outlier_train = []
-            labels_outlier_test = [1]
-            label_groups = np.zeros((len(labels_outlier_test,)))
+            labels_outlier = [1]
+            label_groups = np.zeros((len(labels_outlier,)))
 
         elif data_name=="annthyroid":
             mat = loadmat(base_path + "annthyroid.mat")
             X = mat['X']
             Y = mat['y'].flatten()
             labels_inlier = [0]
-            labels_outlier_train = []
-            labels_outlier_test = [1]
-            label_groups = np.zeros((len(labels_outlier_test,)))
+            labels_outlier = [1]
+            label_groups = np.zeros((len(labels_outlier,)))
 
         is_inlier = np.array([y in labels_inlier for y in Y]).astype(int)
         is_outlier = 1-is_inlier
-        is_outlier_train = np.array([y in labels_outlier_train for y in Y]).astype(int)
-        is_outlier_test = np.array([y in labels_outlier_test for y in Y]).astype(int)
         label_groups = np.array([label_groups_dict[y] for y in Y]).astype(int)
 
-        print("Loaded data set with {:d} samples: {:d} inliers and {:d} outliers, of which {:d} are available for training."\
-              .format(len(Y), np.sum(is_inlier), np.sum(is_outlier), np.sum(is_outlier_train)))
+        print("Loaded data set with {:d} samples: {:d} inliers and {:d} outliers."\
+              .format(len(Y), np.sum(is_inlier), np.sum(is_outlier)))
 
         # Define test set
         if random_state is not None:
@@ -180,17 +173,7 @@ class DataSet:
         idx_in = self.idx_in
 
         # Sample the outliers
-        if self.outlier_shift>0:
-            self.label_test_group = 2
-            groups = self.label_groups[idx_out]
-            is_target = np.zeros((len(idx_out),))
-            idx_target = np.where(groups==self.label_test_group)[0]
-            is_target[idx_target] = 1
-            p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * is_target
-            p_test_out = p_test_out / np.sum(p_test_out) 
-            sample_out = np.random.choice(idx_out, n, replace=False, p=p_test_out)      
-        else:
-            sample_out = np.random.choice(idx_out, n, replace=False)      
+        sample_out = np.random.choice(idx_out, n, replace=False)      
 
         # Sample the inliers
         sample_in = np.random.choice(idx_in, n, replace=False)             
@@ -227,12 +210,11 @@ class DataSet:
 
         # Sample the outliers
         if self.outlier_shift>0:
-            self.label_test_group = 2
             groups = self.label_groups[idx_out]
             is_target = np.zeros((len(idx_out),))
-            idx_target = np.where(groups==self.label_test_group)[0]
+            idx_target = np.where(groups==self.shift_group)[0]
             is_target[idx_target] = 1
-            p_test_out = np.ones((len(idx_out),)) - self.outlier_shift * is_target
+            p_test_out = (1.0-self.outlier_shift) * np.ones((len(idx_out),)) + self.outlier_shift * is_target
             p_test_out = p_test_out / np.sum(p_test_out) 
             sample_out = np.random.choice(idx_out, n_out, replace=False, p=p_test_out)      
         else:

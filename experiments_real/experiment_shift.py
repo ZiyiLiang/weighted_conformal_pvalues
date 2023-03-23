@@ -42,20 +42,22 @@ if True: # Input parameters
     print ('Number of arguments:', len(sys.argv), 'arguments.')
     print ('Argument List:', str(sys.argv))
     model_num = 1
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 7:
         print("Error: incorrect number of parameters.")
         quit()
     data_name = sys.argv[1]
     n_in = int(sys.argv[2])
     n_out = int(sys.argv[3])
     outlier_shift = float(sys.argv[4])
-    random_state = int(sys.argv[5])
+    shift_group = int(sys.argv[5])
+    random_state = int(sys.argv[6])
 
 else: # Default parameters
     data_name = "cifar-10"
     n_in = 1000
     n_out = 10
     outlier_shift = 0.5
+    shift_group = 1
     random_state = 2022
 
 
@@ -90,7 +92,7 @@ binary_classifiers = {
 #########################
 
 base_path = "../experiments_real/data/"
-dataset = DataSet(base_path, data_name, random_state=0, outlier_shift=outlier_shift)
+dataset = DataSet(base_path, data_name, random_state=0, outlier_shift=outlier_shift, shift_group=shift_group)
 
 n_in = np.minimum(n_in, dataset.n_in)
 n_out = np.minimum(n_out, dataset.n_out)
@@ -98,7 +100,8 @@ n_out = np.minimum(n_out, dataset.n_out)
 ###############
 # Output file #
 ###############
-outfile_prefix = "results_shift/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_shift" + str(outlier_shift) + "_seed" + str(random_state)
+outfile_prefix = "results_shift/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_shift" + str(outlier_shift) 
+outfile_prefix += "_sg" + str(shift_group) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
@@ -112,6 +115,7 @@ def add_header(df):
     df["n_in"] = n_in
     df["n_out"] = n_out
     df["shift"] = outlier_shift
+    df["shift_group"] = shift_group
     df["Seed"] = random_state
     return df
 
@@ -258,7 +262,7 @@ for r in range(num_repetitions):
     sys.stdout.flush()
     # Change random seed for this repetition
     random_state_new = 10*num_repetitions*random_state + r
-    dataset = DataSet(base_path, data_name, random_state=random_state_new, outlier_shift=outlier_shift)
+    dataset = DataSet(base_path, data_name, random_state=random_state_new, outlier_shift=outlier_shift, shift_group=shift_group)
     # Run experiment and collect results
     results_new = run_experiment(dataset, random_state_new)
     results_new = add_header(results_new)
