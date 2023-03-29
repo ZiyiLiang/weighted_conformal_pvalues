@@ -67,6 +67,11 @@ n_test = 1000
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
+# Short list of a single one-class classifier with desired hyper-parameters
+oneclass_classifiers_single = {
+    'SVM-sig': OneClassSVM(kernel='sigmoid'),
+}
+
 # List of possible one-class classifiers with desired hyper-parameters
 oneclass_classifiers = {
     'SVM-rbf': OneClassSVM(kernel='rbf'),
@@ -188,52 +193,67 @@ def run_experiment(dataset, random_state):
     results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
     results = pd.concat([results, results_tmp])
 
-    ## Conformal p-values via weighted one-class learning ensemble
-    print("Running weighted classifiers with learning ensemble (one-class)...")
+    # ## Conformal p-values via weighted one-class learning ensemble
+    # print("Running weighted classifiers with learning ensemble (one-class)...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                                    bboxes_one=bboxes_one,
+    #                                    calib_size=calib_size, tuning=True, progress=True, verbose=False)
+    # pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (one-class)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    # results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    # results = pd.concat([results, results_tmp])
+
+    # ## Conformal p-values via learning ensemble (no weighting)
+    # print("Running weighted classifiers with learning ensemble (without weighting)...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                               bboxes_one=bboxes_one, bboxes_two=bboxes_two,
+    #                               calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    # pvals_test = method.compute_pvalues(X_test)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (mixed, unweighted)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.nan
+    # results_tmp["1/log(n1+1)"] = np.nan
+    # results = pd.concat([results, results_tmp])
+
+    # ## Conformal p-values via learning ensemble (one-class, no weighting)
+    # print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
+    # sys.stdout.flush()
+    # bboxes_one = list(oneclass_classifiers.values())
+    # bboxes_two = list(binary_classifiers.values())
+    # method = IntegrativeConformal(X_in, X_out,
+    #                               bboxes_one=bboxes_one,
+    #                               calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
+    # pvals_test = method.compute_pvalues(X_test)
+    # results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
+    # results_tmp["Method"] = "Ensemble (one-class, unweighted)"
+    # results_tmp["Model"] = "Ensemble"
+    # results_tmp["E_U1_Y0"] = np.nan
+    # results_tmp["1/log(n1+1)"] = np.nan
+    # results = pd.concat([results, results_tmp])
+
+    ## Conformal p-values via weighted one-class learning
+    print("Running weighted classifiers with a single one-class classifier...")
     sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
+    bboxes_one_single = list(oneclass_classifiers_single.values())
     method = IntegrativeConformal(X_in, X_out,
-                                       bboxes_one=bboxes_one,
+                                       bboxes_one=bboxes_one_single,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (one-class)"
-    results_tmp["Model"] = "Ensemble"
+    results_tmp["Method"] = "Integrative (one-class)"
+    results_tmp["Model"] = "OCC"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
     results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
-    results = pd.concat([results, results_tmp])
-
-    ## Conformal p-values via learning ensemble (no weighting)
-    print("Running weighted classifiers with learning ensemble (without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
-                                  bboxes_one=bboxes_one, bboxes_two=bboxes_two,
-                                  calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (mixed, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
-    results = pd.concat([results, results_tmp])
-
-    ## Conformal p-values via learning ensemble (one-class, no weighting)
-    print("Running weighted classifiers with learning ensemble (one-class, without weighting)...")
-    sys.stdout.flush()
-    bboxes_one = list(oneclass_classifiers.values())
-    bboxes_two = list(binary_classifiers.values())
-    method = IntegrativeConformal(X_in, X_out,
-                                  bboxes_one=bboxes_one,
-                                  calib_size=calib_size, ratio=False, tuning=True, progress=True, verbose=False)
-    pvals_test = method.compute_pvalues(X_test)
-    results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
-    results_tmp["Method"] = "Ensemble (one-class, unweighted)"
-    results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.nan
-    results_tmp["1/log(n1+1)"] = np.nan
     results = pd.concat([results, results_tmp])
 
     # ## Conformal p-values via binary ensemble (no weighting)

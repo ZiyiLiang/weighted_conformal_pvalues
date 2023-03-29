@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SETUP=2
+SETUP=2b
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("images_flowers")
@@ -11,13 +11,18 @@ if [[ $SETUP == 1 ]]; then
   
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("images_animals")
-#  N_IN_LIST=(1000 10000) 
   N_IN_LIST=(1000 7824) 
-#  N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
-  N_OUT_LIST=(100 500 1000) # 1000 2000) # 5000)
+  N_OUT_LIST=(100 500 1000)
   SHIFT_LIST=(0.0 0.25 0.5 0.75 0.85 0.95)
   SHIFT_GROUP_LIST=(1 2 3) # 1: felines, 2: canides, 3: primates
-#  SHIFT_LIST=(0.5)
+  SEED_LIST=$(seq 1 100)
+
+elif [[ $SETUP == 2b ]]; then
+  DATA_LIST=("images_animals")
+  N_IN_LIST=(7824) 
+  N_OUT_LIST=(100 500 1000) # 1000 2000) # 5000)
+  SHIFT_LIST=(0.0 0.25 0.5 0.75 0.85 0.95)
+  SHIFT_GROUP_LIST=(3) # 1: felines, 2: canides, 3: primates
   SEED_LIST=$(seq 1 100)
 
 elif [[ $SETUP == 3 ]]; then
@@ -68,7 +73,7 @@ for SEED in $SEED_LIST; do
             if [[ -f $OUT_FILE ]]; then
               COMPLETE=1
             fi
-
+            
             if [[ $COMPLETE -eq 0 ]]; then
               # Script to be run
               SCRIPT="experiment_shift.sh $DATA $N_IN $N_OUT $SHIFT $SHIFT_GROUP $SEED"
