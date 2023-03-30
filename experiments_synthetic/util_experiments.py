@@ -73,3 +73,63 @@ def eval_pvalues(pvals, Y, alpha_list):
     results_tmp["Fixed-FPR"] = fpr_list
     results_tmp["Fixed-TPR"] = tpr_list
     return results_tmp
+
+
+
+def sample_beta_mixture(n, u1_ref, nu, gamma):
+    mix_id = np.random.binomial(1, gamma, size=(n,))
+    idx_ref = np.where(mix_id==1)[0]
+    idx_beta = np.where(mix_id==0)[0]
+    out = -np.ones((n,))
+    if len(idx_ref)>0:
+        out[idx_ref] = np.random.choice(u1_ref, len(idx_ref), replace=True)
+    if len(idx_beta)>0:
+        out[idx_beta] = np.random.beta(nu, 1, size=(len(idx_beta),))
+    return out
+
+def estimate_beta_mixture(u1_test, u1_ref):
+    # Pre-compute sufficient stats
+    u1_test_m1 = np.mean(u1_test)
+    u1_test_m2 = np.mean(u1_test**2)
+    u1_ref_m1 = np.mean(u1_ref)
+    u1_ref_m2 = np.mean(u1_ref**2)
+
+    def eval_gamma(nu):
+        gamma = (u1_test_m2 - nu/(nu+2.0)) / (u1_ref_m2 - nu/(nu+2.0))
+        return np.clip(gamma, 0, 1)
+
+    def eval_nu(gamma):
+        nu = (u1_test_m1 - gamma * u1_ref_m1)
+        nu /= ( 1 - gamma - (u1_test_m1 - gamma * u1_ref_m1))
+        return np.maximum(nu, 0)
+
+    def update_nu(nu):
+        nu2 = (nu+1)*(nu+2) * (u1_test_m1 - nu/(nu+1)) * (u1_ref_m2 - nu/(nu+2))
+        nu2 -= (nu+1)*(nu+2) * u1_ref_m1 * u1_test_m2
+        nu2 += nu*(nu+1) * u1_ref_m1 + nu*(nu+2) * u1_test_m2
+        nu = np.sqrt(nu2)
+        return nu
+
+
+    # Initialize
+    gamma = 0.5
+    nu = eval_nu(gamma)
+    print("It {:3d}: nu = {:.3f}, gamma = {:.3f}".format(0, nu, gamma))
+    # Iterate until convergence
+    nu_old = nu
+    gamma_old = gamma
+    converged = False
+    it = 0
+    while (not converged) and (it < 100):
+        it = it + 1
+        nu = update_nu(nu)
+        gamma = eval_gamma(nu)
+        print("It {:3d}: nu = {:.3f}, gamma = {:.3f}".format(it, nu, gamma))
+        delta_nu = np.abs(nu - nu_old) / nu_old
+        delta_gamma = np.abs(gamma - gamma_old) / gamma_old
+        nu_old = nu
+        gamma_old = gamma
+        if np.maximum(delta_nu, delta_gamma) < 1e-6:
+            converged = True
+
+    return nu, gamma
