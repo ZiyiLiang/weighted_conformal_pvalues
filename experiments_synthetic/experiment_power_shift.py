@@ -24,6 +24,20 @@ from methods_split import BinaryConformal, OneClassConformal, IntegrativeConform
 
 from util_experiments import eval_pvalues, estimate_beta_mixture, sample_beta_mixture
 
+import decimal
+ctx = decimal.Context()
+
+# 9 digits should be enough
+ctx.prec = 9
+
+def float_to_str(f):
+    """
+    Convert the given float to a string,
+    without resorting to scientific notation
+    """
+    d1 = ctx.create_decimal(repr(f))
+    return format(d1, 'f')
+
 #########################
 # Data-generating model #
 #########################
@@ -103,7 +117,7 @@ bboxes_one_out = [OneClassSVM(kernel='rbf', gamma=gamma)]
 ###############
 # Output file #
 ###############
-outfile_prefix = "results_power_shift/setup_power" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_as" + str(a_shift) + "_purity" + str(purity) + "_gamma" + str(gamma) + "_seed" + str(random_state)
+outfile_prefix = "results/setup_power_shift" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_as" + str(a_shift) + "_purity" + str(purity) + "_gamma" + float_to_str(gamma) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
@@ -114,6 +128,7 @@ def add_header(df):
     df["n"] = n
     df["p"] = p
     df["Signal"] = a
+    df["Shift"] = a_shift
     df["Purity"] = purity
     df["Gamma"] = gamma
     df["Seed"] = random_state

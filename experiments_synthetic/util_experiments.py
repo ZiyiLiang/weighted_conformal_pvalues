@@ -101,13 +101,13 @@ def estimate_beta_mixture(u1_test, u1_ref):
     def eval_nu(gamma):
         nu = (u1_test_m1 - gamma * u1_ref_m1)
         nu /= ( 1 - gamma - (u1_test_m1 - gamma * u1_ref_m1))
-        return np.maximum(nu, 0)
+        return np.maximum(nu, 0.0001)
 
     def update_nu(nu):
         nu2 = (nu+1)*(nu+2) * (u1_test_m1 - nu/(nu+1)) * (u1_ref_m2 - nu/(nu+2))
         nu2 -= (nu+1)*(nu+2) * u1_ref_m1 * u1_test_m2
         nu2 += nu*(nu+1) * u1_ref_m1 + nu*(nu+2) * u1_test_m2
-        nu = np.sqrt(nu2)
+        nu = np.sqrt(np.maximum(nu2,0.0001))
         return nu
 
 
@@ -125,8 +125,8 @@ def estimate_beta_mixture(u1_test, u1_ref):
         nu = update_nu(nu)
         gamma = eval_gamma(nu)
         print("It {:3d}: nu = {:.3f}, gamma = {:.3f}".format(it, nu, gamma))
-        delta_nu = np.abs(nu - nu_old) / nu_old
-        delta_gamma = np.abs(gamma - gamma_old) / gamma_old
+        delta_nu = np.abs(nu - nu_old) / (nu_old+1e-6)
+        delta_gamma = np.abs(gamma - gamma_old) / (gamma_old+1e-6)
         nu_old = nu
         gamma_old = gamma
         if np.maximum(delta_nu, delta_gamma) < 1e-6:
