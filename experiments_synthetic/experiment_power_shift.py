@@ -207,7 +207,8 @@ def run_experiment(dataset, random_state):
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1.0/np.log(n1+1.0)
     results_tmp["informativeness"] = informativeness
     results = pd.concat([results, results_tmp])
