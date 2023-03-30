@@ -55,6 +55,7 @@ class IntegrativeConformal:
 
         # Split data into training and calibration subsets
         X_in_train, X_in_calib = train_test_split(X_in, test_size=calib_size, random_state=random_state)
+        self.X_in_train = X_in_train
         try:
             X_out_train, X_out_calib = train_test_split(X_out, test_size=calib_size, random_state=random_state)
         except:
