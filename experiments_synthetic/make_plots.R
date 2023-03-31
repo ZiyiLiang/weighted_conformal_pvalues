@@ -6,12 +6,12 @@ plot.1 <- FALSE
 plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
-plot.5 <- FALSE
+plot.5 <- TRUE
 plot.6 <- FALSE
 plot.7 <- FALSE
 plot.8 <- FALSE
 plot.9 <- FALSE
-plot.10 <- TRUE
+plot.10 <- FALSE
 
 #############
 ## Setup 1 ##
@@ -449,14 +449,14 @@ if(plot.5) {
         metric.labels <- c("TPR", "FPR")
     }
 
-    z.lab <- parse(text=latex2exp::TeX("$\\frac{E( \\hat{u}_1(X) \\,|\\, Y=0 )}{1/\\log(n_1+1)}$"))
+    z.lab <- parse(text=latex2exp::TeX("Informativeness ($\\hat{\\Xi}$)"))
     
     alpha.nominal <- 0.1
     df.nominal <- tibble(Metric="Z", Mean=1) %>%
         mutate(Metric = factor(Metric, c("Power", "Z"), c("Power", z.lab)))
 
     results.fdr.models <- results %>%
-        mutate(Z=E_U1_Y0 / `1/log(n1+1)`) %>%
+        mutate(Z=`1/log(n1+1)`/E_U1_Y0_approx) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha, Gamma) %>%
         summarise(Z.se=2*sd(Z)/sqrt(n()), Z=mean(Z),
                   Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
@@ -497,7 +497,7 @@ if(plot.5) {
         xlab("SVM gamma") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_power_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.75, height=3, units="in")
+    pp %>% ggsave(file=sprintf("figures/experiment_power_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.75, height=3.25, units="in")
     
 
 }
