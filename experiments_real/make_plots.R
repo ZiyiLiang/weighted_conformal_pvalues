@@ -3,9 +3,9 @@ options(width=160)
 library(tidyverse)
 
 plot.1 <- FALSE  # Flowers
-plot.2 <- FALSE  # Animals
+plot.2 <- TRUE  # Animals
 plot.3 <- FALSE  # Cars
-plot.4 <- TRUE  # Tabular
+plot.4 <- FALSE  # Tabular
 plot.5 <- FALSE  # Flowers-CV
 plot.6 <- FALSE  # Tabular-CV
 
@@ -298,7 +298,7 @@ if(plot.2) {
     model.labels <- c("Integrative", "IF", "LOF", "SVM-pol", "SVM-rbf", "SVM-sgd", "SVM-sig")
     color.scale <- c("darkviolet", "orange", "orange", "orange", "orange", "orange", "orange", "orange")
     shape.scale <- c(8, 3, 3, 3, 3, 3, 3, 3)
-    linetype.scale <- c(1, 2, 2, 2, 2, 3, 2, 2)
+    linetype.scale <- c(1, 2, 3, 4, 5, 6, 7, 8) 
     alpha.scale <- c(1,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
    
     pp.1 <- df %>%
@@ -312,7 +312,7 @@ if(plot.2) {
         geom_point() +
         geom_line() +
         ##    geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
-        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+#        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
         facet_grid(.~n_in) +
         scale_x_log10() +
         scale_color_manual(values=color.scale) +
@@ -346,7 +346,7 @@ if(plot.2) {
     model.labels <- c("Integrative", "KNN", "MLP", "NB", "QDA", "RF", "SVC")
     color.scale <- c("darkviolet", "cornflowerblue", "cornflowerblue", "cornflowerblue", "cornflowerblue", "cornflowerblue", "cornflowerblue", "cornflowerblue")
     shape.scale <- c(8, 3, 3, 3, 3, 3, 3, 3)
-    linetype.scale <- c(1, 2, 4, 2, 2, 3, 5, 2) 
+    linetype.scale <- c(1, 2, 3, 4, 5, 6, 7, 8) 
     alpha.scale <- c(1,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
    
     pp.2 <- df %>%
@@ -360,7 +360,7 @@ if(plot.2) {
         geom_point() +
         geom_line() +
         ##    geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
-        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        ##geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
         facet_grid(.~n_in) +
         scale_x_log10() +
         scale_color_manual(values=color.scale) +
