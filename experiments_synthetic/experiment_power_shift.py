@@ -177,7 +177,9 @@ def run_experiment(dataset, random_state):
     pvals_ref = pvals_train_in_1
     nu, gamma = estimate_beta_mixture(pvals_test_1, pvals_ref)
     n1 = int(X_out.shape[0]*calib_size)
-    if nu < 1:
+    if np.abs(nu-1) < 1e-3:
+        informativeness = 1.0/np.log(n1+1.0)
+    elif nu < 1:
         informativeness = 1 / (nu * zeta(2-nu) * np.power(n1+1, 1-nu))
     else:
         informativeness = (nu-1)/nu * (1 - (nu-1)* zeta(2-nu) / np.power(n1+1, nu-1))

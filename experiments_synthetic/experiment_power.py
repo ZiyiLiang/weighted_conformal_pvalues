@@ -130,6 +130,7 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (one-class, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
     results = pd.concat([results, results_tmp])
 
@@ -139,11 +140,14 @@ def run_experiment(dataset, random_state):
     method = IntegrativeConformal(X_in, X_out,
                                        bboxes_one=bboxes_one_in, bboxes_one_out=bboxes_one_out,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
+    _, _, pvals_train_in_1 = method.compute_pvalues(method.X_in_train, return_prepvals=True)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    pvals_ref = pvals_train_in_1
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1.0/np.log(int(X_out.shape[0]*calib_size)+1.0)
     results = pd.concat([results, results_tmp])
 
