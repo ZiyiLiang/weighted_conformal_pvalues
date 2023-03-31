@@ -161,7 +161,9 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (one-class, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
+    results_tmp["informativeness"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
