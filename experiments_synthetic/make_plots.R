@@ -8,9 +8,9 @@ plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
 plot.5 <- FALSE
-plot.6 <- FALSE
+plot.6 <- TRUE
 plot.7 <- FALSE
-plot.8 <- TRUE
+plot.8 <- FALSE
 plot.9 <- FALSE
 plot.10 <- FALSE
 
@@ -690,7 +690,7 @@ if(plot.6) {
         xlab("Number of models") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_greedy_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
+    pp %>% ggsave(file=sprintf("figures/experiment_greedy_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
 }
 

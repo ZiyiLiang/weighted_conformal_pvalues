@@ -323,9 +323,10 @@ if(plot.2) {
         ylab("Power") +
 #        ggtitle("(a)") +
         theme_bw() +
+        guides(color=guide_legend(ncol=2)) +
         theme(legend.key.width = unit(1,"cm"),
               plot.title = element_text(hjust = -0.11, vjust = -4))
-    pp.1 %>% ggsave(file=sprintf("figures/experiment_real_animals_oracle_occ.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
+    pp.1 %>% ggsave(file=sprintf("figures/experiment_real_animals_oracle_occ.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6, height=1.75, units="in")
     
 
     df <- results.fdr.models %>%
@@ -371,9 +372,10 @@ if(plot.2) {
         ylab("Power") +
 #        ggtitle("(b)") +
         theme_bw() +
+        guides(color=guide_legend(ncol=2)) +
         theme(legend.key.width = unit(1,"cm"),
               plot.title = element_text(hjust = -0.11, vjust = -4))
-    pp.2 %>% ggsave(file=sprintf("figures/experiment_real_animals_oracle_bin.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
+    pp.2 %>% ggsave(file=sprintf("figures/experiment_real_animals_oracle_bin.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6, height=1.75, units="in")
 
 }
 
