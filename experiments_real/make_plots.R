@@ -321,7 +321,7 @@ if(plot.2) {
         scale_linetype_manual(values=linetype.scale) +
         xlab("Number of outliers") +        
         ylab("Power") +
-        ggtitle("(a)") +
+#        ggtitle("(a)") +
         theme_bw() +
         theme(legend.key.width = unit(1,"cm"),
               plot.title = element_text(hjust = -0.11, vjust = -4))
@@ -369,7 +369,7 @@ if(plot.2) {
         scale_linetype_manual(values=linetype.scale) +
         xlab("Number of outliers") +        
         ylab("Power") +
-        ggtitle("(b)") +
+#        ggtitle("(b)") +
         theme_bw() +
         theme(legend.key.width = unit(1,"cm"),
               plot.title = element_text(hjust = -0.11, vjust = -4))
