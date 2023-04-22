@@ -1,22 +1,22 @@
 #!/bin/bash
 
-SETUP=4
+SETUP=2
 
 if [[ $SETUP == 1 ]]; then
   DATA_LIST=("images_flowers")
-  N_IN_LIST=(1000) 
+  N_IN_LIST=(1000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
   SEED_LIST=$(seq 1 100)
 
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("images_animals")
-  N_IN_LIST=(1000 10000) 
+  N_IN_LIST=(1000 10000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
-  SEED_LIST=$(seq 11 100)
+  SEED_LIST=$(seq 1 1)
 
 elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
-  N_IN_LIST=(5000) 
+  N_IN_LIST=(5000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
   SEED_LIST=$(seq 1 10)
 
@@ -71,7 +71,7 @@ for SEED in $SEED_LIST; do
           # Print order
           echo $ORD
           # Submit order
-          $ORD
+          #$ORD
           # Run command now
           #./$SCRIPT
         fi

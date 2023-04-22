@@ -205,11 +205,11 @@ if(plot.2) {
         }
     }))
 
-    method.values <- c("Ensemble (one-class)", "One-Class", "Binary")
-    method.labels <- c("Integrative", "OCC (oracle)", "Binary (oracle)")
-    color.scale <- c("darkviolet", "red", "blue")
-    shape.scale <- c(8, 3, 1, 1)
-    alpha.scale <- c(1, 0.75, 0.75)
+    method.values <- c("Ensemble (one-class)", "Ensemble", "Ensemble (mixed, unweighted)", "One-Class", "Binary")
+    method.labels <- c("Integrative (occ)", "Integrative", "Integrative (unw)", "OCC (oracle)", "Binary (oracle)")
+    color.scale <- c("violet", "darkviolet", "orange", "red", "blue")
+    shape.scale <- c(8, 8, 8, 3, 1, 1)
+    alpha.scale <- c(1, 1, 1, 0.75, 0.75)
 
     plot.fdr <- TRUE
 
@@ -276,7 +276,9 @@ if(plot.2) {
         xlab("Number of outliers") +
         ylab("Power") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_real_animals.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
+
+    pp
+##    pp %>% ggsave(file=sprintf("figures/experiment_real_animals.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
 
     
