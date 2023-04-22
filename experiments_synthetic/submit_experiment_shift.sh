@@ -8,36 +8,9 @@ if [[ $SETUP == 1 ]]; then
   N_LIST=(20 30 50 100 200 500 1000 2000 5000)
   P_LIST=(1000)
   A_LIST=(0.7)
-  A_SHIFT_LIST=(0.25)
-  PURITY_LIST=(0.5)# 0.75 0.9)
-  SEED_LIST=$(seq 1 1)
-
-elif [[ $SETUP == 2 ]]; then
-  DATA_LIST=("circles-mixed")
-  N_LIST=(200 2000)
-  P_LIST=(1000)
-  A_LIST=(0.7)
-  A_SHIFT_LIST=(0.25)
-  PURITY_LIST=(0.5 0.6 0.7 0.8 0.9 0.95 0.98 0.99 1.0)
-  SEED_LIST=$(seq 1 100)
-
-elif [[ $SETUP == 3 ]]; then
-  DATA_LIST=("circles-mixed")
-  N_LIST=(20 50 100 200 500 1000 2000 5000)
-  P_LIST=(1000)
-  A_LIST=(1.25)
-  A_SHIFT_LIST=(0.25)
-  PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 100)
-
-elif [[ $SETUP == 4 ]]; then
-  DATA_LIST=("binomial")
-  N_LIST=(20 50 100 200 500 1000 2000 5000)
-  P_LIST=(100)
-  A_LIST=(3)
-  A_SHIFT_LIST=(0.25)
-  PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 100)
+  A_SHIFT_LIST=(0.25 0.1 0.0 -0.1 -0.25)
+  PURITY_LIST=(0.5) # 0.75 0.9)
+  SEED_LIST=$(seq 11 100)
 
 fi
 
@@ -53,7 +26,7 @@ ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
 # Create directory for log files
 LOGS="logs"
 mkdir -p $LOGS
-mkdir -p $LOGS"/setup"$SETUP
+mkdir -p $LOGS"/setup_shift"$SETUP
 
 OUT_DIR="results"
 mkdir -p $OUT_DIR
@@ -69,7 +42,7 @@ for SEED in $SEED_LIST; do
           for A_SHIFT in "${A_SHIFT_LIST[@]}"; do
             for PURITY in "${PURITY_LIST[@]}"; do
 
-              JOBN="setup"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_as"$A_SHIFT"_purity"$PURITY"_seed"$SEED
+              JOBN="setup_shift"$SETUP"/"$DATA"_n"$N"_p"$P"_a"$A"_as"$A_SHIFT"_purity"$PURITY"_seed"$SEED
               OUT_FILE=$OUT_DIR"/"$JOBN".txt"
               COMPLETE=0
               #ls $OUT_FILE
@@ -88,7 +61,7 @@ for SEED in $SEED_LIST; do
                 # Print order
                 echo $ORD
                 # Submit order
-                #$ORD
+                $ORD
                 # Run command now
                 #./$SCRIPT
               fi
