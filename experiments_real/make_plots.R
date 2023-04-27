@@ -2,8 +2,8 @@ options(width=160)
 
 library(tidyverse)
 
-plot.1 <- FALSE  # Flowers
-plot.2 <- TRUE  # Animals
+plot.1 <- TRUE  # Flowers
+plot.2 <- FALSE  # Animals
 plot.3 <- FALSE  # Cars
 plot.4 <- FALSE  # Tabular
 plot.5 <- FALSE  # Flowers-CV

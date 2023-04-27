@@ -53,6 +53,7 @@ else: # Default parameters
     purity = 0.8
     random_state = 2022
 
+gamma = 0.577
 
 # Fixed experiment parameters
 n_test = 1000
@@ -126,6 +127,7 @@ def run_experiment(dataset, random_state):
     X, Y = dataset.sample(n, purity)
     X_in = X[Y==0]
     X_out = X[Y==1]
+    n1 = int(X_out.shape[0]*calib_size)
     # Sample the test data
     X_test, Y_test = dataset.sample(n_test, purity_test)
 
@@ -144,6 +146,7 @@ def run_experiment(dataset, random_state):
         results_tmp["Model"] = bc_name
         results_tmp["E_U1_Y0"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
+        results_tmp["informativeness"] = np.nan
         results = pd.concat([results, results_tmp])
 
     # Conformal p-values via one-class classification
@@ -158,6 +161,7 @@ def run_experiment(dataset, random_state):
         results_tmp["Model"] = occ_name
         results_tmp["E_U1_Y0"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
+        results_tmp["informativeness"] = np.nan
         results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification
@@ -170,8 +174,9 @@ def run_experiment(dataset, random_state):
         results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
         results_tmp["Method"] = "Weighted One-Class"
         results_tmp["Model"] = occ_name
-        results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
-        results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+        results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+        results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
+        results_tmp["informativeness"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
         results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
@@ -186,8 +191,9 @@ def run_experiment(dataset, random_state):
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
-    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1)
-    results_tmp["1/log(n1+1)"] = 1/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
+    results_tmp["informativeness"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via learning ensemble (no weighting)
@@ -204,6 +210,7 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
+    results_tmp["informativeness"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via learning ensemble (one-class, no weighting)
@@ -220,6 +227,7 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
+    results_tmp["informativeness"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via binary ensemble (no weighting)
@@ -236,6 +244,7 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
+    results_tmp["informativeness"] = np.nan
     results = pd.concat([results, results_tmp])
 
     return results

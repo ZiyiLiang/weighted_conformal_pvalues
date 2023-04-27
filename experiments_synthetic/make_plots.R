@@ -2,13 +2,13 @@ options(width=160)
 
 library(tidyverse)
 
-plot.1 <- FALSE
+plot.1 <- TRUE
 plot.1b <- FALSE
 plot.2 <- FALSE
 plot.3 <- FALSE
 plot.4 <- FALSE
 plot.5 <- FALSE
-plot.6 <- TRUE
+plot.6 <- FALSE
 plot.7 <- FALSE
 plot.8 <- FALSE
 plot.9 <- FALSE
