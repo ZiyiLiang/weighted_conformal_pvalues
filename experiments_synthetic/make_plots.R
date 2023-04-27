@@ -34,51 +34,59 @@ if(plot.1) {
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
     plot.fdr <- TRUE
+    xi.lab <- parse(text=latex2exp::TeX("Informativeness ($\\Xi$)"))
 
     if(plot.fdr) {
         results <- results.raw %>%
             mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("Power", "FDR")
+        metric.values <- c("Power", "TypeI", "Informativeness")
+        metric.labels <- c("Power", "FDR", xi.lab)
     } else {
         results <- results.raw %>%
             mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("TPR", "FPR")
+        metric.values <- c("Power", "TypeI", "Informativeness")
+        metric.labels <- c("TPR", "FPR", xi.lab)
     }
 
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
+    df.nominal <- tibble(Metric=c("TypeI", "Informativeness"), Mean=c(alpha.nominal,1)) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    df.limits <- tibble(Metric=c("TypeI", "Informativeness"), Mean=c(1,0)) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
+    
     results.fdr.models <- results %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Informativeness=mean(informativeness), Informativeness.se=2*sd(informativeness)/sqrt(n()))
 
     results.fdr.oracle <- results %>%
         filter(Method %in% c("Binary", "One-Class")) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Informativeness=mean(informativeness), Informativeness.se=2*sd(informativeness)/sqrt(n())) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
-                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
+                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle],
+                  Informativeness=Informativeness[idx.oracle], Informativeness.se=Informativeness.se[idx.oracle]) %>%
         select(-idx.oracle)
 
     df <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         rbind(results.fdr.oracle)
     results.fdr.mean <- df %>%
-        gather(Power, TypeI, key="Metric", value="Mean") %>%
-        select(-Power.se, -TypeI.se)
+        gather(Power, TypeI, Informativeness, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se, -Informativeness.se)
     results.fdr.se <- df %>%
-        gather(Power.se, TypeI.se, key="Metric", value="SE") %>%
-        select(-Power, -TypeI) %>%
+        gather(Power.se, TypeI.se, Informativeness.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI, -Informativeness) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
-               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric))
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric),
+               Metric = ifelse(Metric=="Informativeness.se", "Informativeness", Metric))
     results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
         mutate(Purity = sprintf("Inliers: %.2f", Purity))
-
+    
     pp <- results.fdr %>%
         filter(Data=="circles-mixed", n>10, p==1000, Alpha==alpha.nominal) %>%
                                         #    filter(Metric=="Power") %>%
@@ -86,10 +94,11 @@ if(plot.1) {
         mutate(Method = factor(Method, method.values, method.labels)) %>%
         ggplot(aes(x=n, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
+        geom_point(x=0, aes(y=Mean), data=df.limits, color="white", shape=1, alpha=0) +
         geom_line() +
         geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
-        facet_grid(Metric~Purity) +
+        facet_grid(Metric~Purity, scales="free", labeller=label_parsed) +
         scale_x_log10(breaks=c(30, 300, 3000)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
@@ -97,7 +106,7 @@ if(plot.1) {
         xlab("Sample size") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_1_n_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=3, units="in")
+    pp %>% ggsave(file=sprintf("figures/experiment_1_n_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.5, height=4.5, units="in")
 
     pp.small <- results.fdr %>%
         filter(Data=="circles-mixed", n>10, p==1000, Alpha==alpha.nominal) %>%
