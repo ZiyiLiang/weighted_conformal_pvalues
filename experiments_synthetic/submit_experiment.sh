@@ -83,7 +83,7 @@ for SEED in $SEED_LIST; do
               # Print order
               echo $ORD
               # Submit order
-              #$ORD
+              $ORD
               # Run command now
               #./$SCRIPT
             fi

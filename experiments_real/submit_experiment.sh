@@ -12,7 +12,7 @@ elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("images_animals")
   N_IN_LIST=(1000 10000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 2 10)
 
 elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
@@ -43,7 +43,7 @@ ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
 LOGS="logs"
 mkdir -p $LOGS
 
-OUT_DIR="results"
+OUT_DIR="results2"
 mkdir -p $OUT_DIR
 
 # Loop over configurations and chromosomes
@@ -71,7 +71,7 @@ for SEED in $SEED_LIST; do
           # Print order
           echo $ORD
           # Submit order
-          #$ORD
+          $ORD
           # Run command now
           #./$SCRIPT
         fi

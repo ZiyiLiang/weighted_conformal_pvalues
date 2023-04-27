@@ -111,7 +111,7 @@ n_out = np.minimum(n_out, dataset.n_out)
 ###############
 # Output file #
 ###############
-outfile_prefix = "results/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_seed" + str(random_state)
+outfile_prefix = "results2/" + str(data_name) + "_nin"+str(n_in) + "_nout"+str(n_out) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
