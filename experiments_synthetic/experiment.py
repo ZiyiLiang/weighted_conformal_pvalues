@@ -145,8 +145,10 @@ def run_experiment(dataset, random_state):
         results_tmp["Method"] = "Binary"
         results_tmp["Model"] = bc_name
         results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["E_U1_Y0_approx"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
         results_tmp["xi-2"] = np.nan
+        results_tmp["xi-2-hat"] = np.nan
         results_tmp["xi"] = np.nan
         results = pd.concat([results, results_tmp])
 
@@ -161,8 +163,10 @@ def run_experiment(dataset, random_state):
         results_tmp["Method"] = "One-Class"
         results_tmp["Model"] = occ_name
         results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["E_U1_Y0_approx"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
         results_tmp["xi-2"] = np.nan
+        results_tmp["xi-2-hat"] = np.nan
         results_tmp["xi"] = np.nan
         results = pd.concat([results, results_tmp])
 
@@ -173,12 +177,15 @@ def run_experiment(dataset, random_state):
         occ = oneclass_classifiers[occ_name]
         method = IntegrativeConformal(X_in, X_out, bboxes_one=[occ], calib_size=calib_size, tuning=True, progress=False, verbose=False)
         pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+        _, _, pvals_ref = method.compute_pvalues(method.X_in_train, return_prepvals=True)
         results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
         results_tmp["Method"] = "Weighted One-Class"
         results_tmp["Model"] = occ_name
         results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+        results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
         results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
         results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+        results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
         results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
         results = pd.concat([results, results_tmp])
 
@@ -191,12 +198,15 @@ def run_experiment(dataset, random_state):
                                        bboxes_one=bboxes_one, bboxes_two=bboxes_two,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    _, _, pvals_ref = method.compute_pvalues(method.X_in_train, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
     results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
     results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
@@ -213,8 +223,10 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (mixed, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
     results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan
     results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
@@ -231,8 +243,10 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (one-class, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
     results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan
     results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
@@ -249,8 +263,11 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (binary, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
     results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan
+    results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
     return results
