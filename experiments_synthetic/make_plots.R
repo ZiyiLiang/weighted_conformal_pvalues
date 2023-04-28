@@ -39,50 +39,50 @@ if(plot.1) {
     if(plot.fdr) {
         results <- results.raw %>%
             mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-        metric.values <- c("Power", "TypeI", "Informativeness")
+        metric.values <- c("Power", "TypeI", "Xi")
         metric.labels <- c("Power", "FDR", xi.lab)
     } else {
         results <- results.raw %>%
             mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-        metric.values <- c("Power", "TypeI", "Informativeness")
+        metric.values <- c("Power", "TypeI", "Xi")
         metric.labels <- c("TPR", "FPR", xi.lab)
     }
 
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric=c("TypeI", "Informativeness"), Mean=c(alpha.nominal,1)) %>%
+    df.nominal <- tibble(Metric=c("TypeI", "Xi"), Mean=c(alpha.nominal,1)) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
-    df.limits <- tibble(Metric=c("TypeI", "Informativeness"), Mean=c(1,0)) %>%
+    df.limits <- tibble(Metric=c("TypeI", "Xi"), Mean=c(1,0)) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
     
     results.fdr.models <- results %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
         summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
-                  Informativeness=mean(informativeness), Informativeness.se=2*sd(informativeness)/sqrt(n()))
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()))
 
     results.fdr.oracle <- results %>%
         filter(Method %in% c("Binary", "One-Class")) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha) %>%
         summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
-                  Informativeness=mean(informativeness), Informativeness.se=2*sd(informativeness)/sqrt(n())) %>%
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n())) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
                   TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle],
-                  Informativeness=Informativeness[idx.oracle], Informativeness.se=Informativeness.se[idx.oracle]) %>%
+                  Xi=Xi[idx.oracle], Xi.se=Xi.se[idx.oracle]) %>%
         select(-idx.oracle)
 
     df <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         rbind(results.fdr.oracle)
     results.fdr.mean <- df %>%
-        gather(Power, TypeI, Informativeness, key="Metric", value="Mean") %>%
-        select(-Power.se, -TypeI.se, -Informativeness.se)
+        gather(Power, TypeI, Xi, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se, -Xi.se)
     results.fdr.se <- df %>%
-        gather(Power.se, TypeI.se, Informativeness.se, key="Metric", value="SE") %>%
-        select(-Power, -TypeI, -Informativeness) %>%
+        gather(Power.se, TypeI.se, Xi.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI, -Xi) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
                Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric),
-               Metric = ifelse(Metric=="Informativeness.se", "Informativeness", Metric))
+               Metric = ifelse(Metric=="Xi.se", "Xi", Metric))
     results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
         mutate(Purity = sprintf("Inliers: %.2f", Purity))

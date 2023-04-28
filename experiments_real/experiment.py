@@ -164,8 +164,11 @@ def run_experiment(dataset, random_state):
         results_tmp["Method"] = "Binary"
         results_tmp["Model"] = bc_name
         results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["E_U1_Y0_approx"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
-        results_tmp["informativeness"] = np.nan
+        results_tmp["xi-2"] = np.nan
+        results_tmp["xi-2-hat"] = np.nan
+        results_tmp["xi"] = np.nan
         results = pd.concat([results, results_tmp])
 
     # Conformal p-values via one-class classification
@@ -179,8 +182,11 @@ def run_experiment(dataset, random_state):
         results_tmp["Method"] = "One-Class"
         results_tmp["Model"] = occ_name
         results_tmp["E_U1_Y0"] = np.nan
+        results_tmp["E_U1_Y0_approx"] = np.nan
         results_tmp["1/log(n1+1)"] = np.nan
-        results_tmp["informativeness"] = np.nan
+        results_tmp["xi-2"] = np.nan
+        results_tmp["xi-2-hat"] = np.nan
+        results_tmp["xi"] = np.nan
         results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
@@ -192,12 +198,16 @@ def run_experiment(dataset, random_state):
                                        bboxes_one=bboxes_one, bboxes_two=bboxes_two,
                                        calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    _, _, pvals_ref = method.compute_pvalues(method.X_in_train, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
-    results_tmp["informativeness"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
+    results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class learning ensemble
@@ -209,12 +219,16 @@ def run_experiment(dataset, random_state):
                                   bboxes_one=bboxes_one,
                                   calib_size=calib_size, tuning=True, progress=True, verbose=False)
     pvals_test, pvals_test_0, pvals_test_1 = method.compute_pvalues(X_test, return_prepvals=True)
+    _, _, pvals_ref = method.compute_pvalues(method.X_in_train, return_prepvals=True)
     results_tmp = eval_pvalues(pvals_test, Y_test, alpha_list)
     results_tmp["Method"] = "Ensemble (one-class)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
+    results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1/(gamma+np.log(n1+1.0))
-    results_tmp["informativeness"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
+    results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via learning ensemble (no weighting)
@@ -231,7 +245,8 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
-    results_tmp["informativeness"] = np.nan
+    results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via learning ensemble (one-class, no weighting)
@@ -247,8 +262,10 @@ def run_experiment(dataset, random_state):
     results_tmp["Method"] = "Ensemble (one-class, unweighted)"
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.nan
+    results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
-    results_tmp["informativeness"] = np.nan
+    results_tmp["xi-2"] = np.nan
+    results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
     # ## Conformal p-values via binary ensemble (no weighting)
