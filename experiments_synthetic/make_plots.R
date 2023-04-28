@@ -1,6 +1,7 @@
 options(width=160)
 
 library(tidyverse)
+library(patchwork)
 
 plot.1 <- TRUE
 plot.1b <- FALSE
@@ -551,41 +552,40 @@ if(plot.5) {
     alpha.scale <- c(1, 0.5, 1, 0.75, 0.75)
 
     plot.fdr <- TRUE
+    xi.lab <- parse(text=latex2exp::TeX("True ($\\Xi$)"))
+    xi.hat.lab <- parse(text=latex2exp::TeX("Estimated ($\\hat{\\Xi}$)"))
 
     if(plot.fdr) {
         results <- results.raw %>%
             mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("Power", "FDR")
+        metric.values <- c("Power", "TypeI", "Xi", "Xi-hat")
+        metric.labels <- c("Power", "FDR", xi.lab, xi.hat.lab)
     } else {
         results <- results.raw %>%
             mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("TPR", "FPR")
+        metric.values <- c("Power", "TypeI", "Xi", "Xi-hat")
+        metric.labels <- c("TPR", "FPR", xi.lab, xi.hat.lab)
     }
-
-    z.lab <- parse(text=latex2exp::TeX("Informativeness ($\\hat{\\Xi}$)"))
     
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric="Z", Mean=1) %>%
-        mutate(Metric = factor(Metric, c("Power", "Z"), c("Power", z.lab)))
 
     results.fdr.models <- results %>%
-        mutate(Z=`1/log(n1+1)`/E_U1_Y0_approx) %>%
         group_by(Setup, Data, n, p, Signal, Purity, Method, Model, Alpha, Gamma) %>%
-        summarise(Z.se=2*sd(Z)/sqrt(n()), Z=mean(Z),
+        summarise(Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()), Xi.hat=mean(`xi-2-hat`), Xi.hat.se=2*sd(`xi-2-hat`)/sqrt(n()), 
                   Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
 
     df.mean <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
-        gather(Power, Z, key="Metric", value="Mean") %>%
-        select(-TypeI, -TypeI.se)
+        gather(Power, TypeI, Xi, Xi.hat, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se, -Xi.hat.se)
     df.se <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
-        gather(Power.se, Z.se, key="Metric", value="SE") %>%
-        select(-Z, -Power, -TypeI, -TypeI.se) %>%
+        gather(Power.se, TypeI.se, Xi.se, Xi.hat.se, key="Metric", value="SE") %>%
+        select(-Power, -Xi, -Xi.hat, -TypeI) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
-               Metric = ifelse(Metric=="Z.se", "Z", Metric))
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric),
+               Metric = ifelse(Metric=="Xi.se", "Xi", Metric),
+               Metric = ifelse(Metric=="Xi.hat.se", "Xi.hat", Metric))
 
 
     purity.labs <- c(parse(text=latex2exp::TeX("$n_1=50$")), parse(text=latex2exp::TeX("$n_1=25$")), parse(text=latex2exp::TeX("$n_1=10$")))
@@ -593,11 +593,14 @@ if(plot.5) {
 #        mutate(Purity = sprintf("Inliers: %.2f", Purity))
         mutate(Purity = factor(Purity, c(0.5,0.75,0.9), purity.labs))
 
-    pp <- df %>%
+    df.nominal <- tibble(Metric=c("TypeI"), Mean=c(alpha.nominal)) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    pp.1 <- df %>%
         filter(Data=="circles-mixed", n==200, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
         filter(Method %in% method.values) %>%
+        filter(Metric %in% c("Power", "TypeI")) %>%
         mutate(Method = factor(Method, method.values, method.labels)) %>%
-        mutate(Metric = factor(Metric, c("Power", "Z"), c("Power", z.lab))) %>%
+        mutate(Metric = factor(Metric, c("TypeI", "Power"), c("FDR", "Power"))) %>%
         ggplot(aes(x=Gamma, y=Mean, color=Method, shape=Method, alpha=Method)) +
         geom_point() +
         geom_line() +
@@ -605,14 +608,43 @@ if(plot.5) {
         geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
         facet_grid(Metric~Purity, scales="free", labeller=label_parsed) +
         scale_x_log10() +
-#        scale_y_continuous(lim=c(0,1)) +
+        scale_y_continuous(lim=c(0,1)) +
         scale_color_manual(values=color.scale) +
         scale_shape_manual(values=shape.scale) +
         scale_alpha_manual(values=alpha.scale) +
         xlab("SVM gamma") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_power_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.75, height=3.25, units="in")
+#    pp.1
+
+    df.nominal <- tibble(Metric=c("Xi"), Mean=c(1)) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    pp.2 <- df %>%
+        filter(Data=="circles-mixed", n==200, Signal==0.7, p==1000, Alpha==alpha.nominal) %>%
+        filter(Method %in% c("Ensemble")) %>%
+        filter( Metric %in% c("Xi", "Xi.hat")) %>%
+        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        mutate(Metric = factor(Metric, c("Xi", "Xi.hat"), c(xi.lab, xi.hat.lab))) %>%
+        ggplot(aes(x=Gamma, y=Mean, linetype=Metric, shape=Metric)) +
+        geom_point() +
+        geom_line() +
+        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        facet_grid(.~Purity, scales="free", labeller=label_parsed) +
+        labs(shape = "Informativeness ratio", linetype = "Informativeness ratio") + 
+        scale_x_log10() +
+#        scale_y_continuous(lim=c(0,1)) +
+        scale_shape_manual(values=c(8, 19), labels = c(unname(latex2exp::TeX(c("True ($\\Xi$)"))), unname(latex2exp::TeX(c("Estimated ($\\hat{\\Xi}$)"))))) +
+        scale_linetype_manual(values=c(1,2), labels = c(unname(latex2exp::TeX(c("True ($\\Xi$)"))), unname(latex2exp::TeX(c("Estimated ($\\hat{\\Xi}$)"))))) +
+#        scale_shape_manual(values=shape.scale) +
+#        scale_alpha_manual(values=alpha.scale) +
+        xlab("SVM gamma") +
+        ylab("") +
+        theme_bw()
+#    pp.2
+
+    pp <- pp.1+pp.2 + plot_layout(ncol = 1, heights=c(1.8,1))   
+    pp %>% ggsave(file=sprintf("figures/experiment_power_1_%s.pdf", ifelse(plot.fdr, "bh", "fixed")), width=6.75, height=5, units="in")
     
 
 }

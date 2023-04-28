@@ -132,4 +132,9 @@ def estimate_beta_mixture(u1_test, u1_ref):
         if np.maximum(delta_nu, delta_gamma) < 1e-6:
             converged = True
 
+    # Check whether method converged safely
+    if gamma==1:
+        gamma = np.nan
+        nu = np.nan
+
     return nu, gamma

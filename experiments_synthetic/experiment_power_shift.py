@@ -225,7 +225,6 @@ def run_experiment(dataset, random_state):
     results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
-
     return results
 
 # Initialize result data frame
