@@ -83,7 +83,7 @@ if True: # Input parameters
     a = float(sys.argv[5])
     a_shift = float(sys.argv[6])
     purity = float(sys.argv[7])
-    gamma = float(sys.argv[8])
+    gamma_model = float(sys.argv[8])
     random_state = int(sys.argv[9])
 
 else: # Default parameters
@@ -94,7 +94,7 @@ else: # Default parameters
     a = 0.7
     a_shift = 0
     purity = 0.5
-    gamma = 1
+    gamma_model = 1
     random_state = 2022
 
 # Fixed experiment parameters
@@ -104,6 +104,8 @@ calib_size = 0.5
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
+gamma_euler = 0.577
+
 # Define outlier shift
 # Assumes a_shift <= 1
 # No shift if a_shift = 0
@@ -112,12 +114,12 @@ a_test = (1.0 - a_shift) * a
 
 # Choose a family of one-class classifiers
 bboxes_one_in = [OneClassSVM(kernel='rbf', gamma=0.0005)]
-bboxes_one_out = [OneClassSVM(kernel='rbf', gamma=gamma)] 
+bboxes_one_out = [OneClassSVM(kernel='rbf', gamma=gamma_model)] 
 
 ###############
 # Output file #
 ###############
-outfile_prefix = "results/setup_power_shift" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_as" + str(a_shift) + "_purity" + str(purity) + "_gamma" + float_to_str(gamma) + "_seed" + str(random_state)
+outfile_prefix = "results/setup_power_shift" + str(setup) + "/" +str(data_name) + "_n"+str(n) + "_p" + str(p) + "_a" + str(a) + "_as" + str(a_shift) + "_purity" + str(purity) + "_gamma" + float_to_str(gamma_model) + "_seed" + str(random_state)
 outfile = outfile_prefix + ".txt"
 print("Output file: {:s}".format(outfile), end="\n")
 
@@ -130,7 +132,7 @@ def add_header(df):
     df["Signal"] = a
     df["Shift"] = a_shift
     df["Purity"] = purity
-    df["Gamma"] = gamma
+    df["Gamma"] = gamma_model
     df["Seed"] = random_state
     return df
 
@@ -163,7 +165,10 @@ def run_experiment(dataset, random_state):
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
-    results_tmp["informativeness"] = np.nan
+    results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan 
+    results_tmp["xi-3-hat"] = np.nan 
+    results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
@@ -177,10 +182,10 @@ def run_experiment(dataset, random_state):
 
     # Power analysis based on beta-mixture distribution
     pvals_ref = pvals_train_in_1
-    nu, gamma = estimate_beta_mixture(pvals_test_1, pvals_ref)
+    nu, lamb = estimate_beta_mixture(pvals_test_1, pvals_ref)
     n1 = int(X_out.shape[0]*calib_size)
     if np.abs(nu-1) < 1e-3:
-        informativeness = 1.0/np.log(n1+1.0)
+        informativeness = 1.0/(gamma_euler+np.log(n1+1.0))
     elif nu < 1:
         informativeness = 1 / (nu * zeta(2-nu) * np.power(n1+1, 1-nu))
     else:
@@ -188,7 +193,7 @@ def run_experiment(dataset, random_state):
 
     # Debug: check whether the fitting worked well
     if False:
-        sample_mix = sample_beta_mixture(len(pvals_test_1), pvals_ref, nu, gamma)
+        sample_mix = sample_beta_mixture(len(pvals_test_1), pvals_ref, nu, lamb)
 
         plt.subplot(1, 5, 1)
         plt.hist(pvals_train_in_1)
@@ -204,7 +209,7 @@ def run_experiment(dataset, random_state):
         plt.title("U_1 for all test points.\n M1: {:.3f}. M2: {:.3f}".format(np.mean(pvals_test_1), np.mean(pvals_test_1**2)))
         plt.subplot(1, 5, 5)
         plt.hist(sample_mix)
-        plt.title(" nu: {:.3f}, gamma: {:.3f}\n U_1 for mixture sample.\n M1: {:.3f}. M2: {:.3f}".format(nu, gamma, np.mean(sample_mix), np.mean(sample_mix**2)))
+        plt.title(" nu: {:.3f}, lamb: {:.3f}\n U_1 for mixture sample.\n M1: {:.3f}. M2: {:.3f}".format(nu, lamb, np.mean(sample_mix), np.mean(sample_mix**2)))
         plt.show()
         
     # Store results
@@ -213,8 +218,11 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
     results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
-    results_tmp["1/log(n1+1)"] = 1.0/np.log(n1+1.0)
-    results_tmp["informativeness"] = informativeness
+    results_tmp["1/log(n1+1)"] = 1.0/(gamma_euler+np.log(n1+1.0))
+    results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
+    results_tmp["xi-3-hat"] = informativeness/ results_tmp["E_U1_Y0_approx"]
+    results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
 

@@ -8,13 +8,14 @@ if [[ $SETUP == 1 ]]; then
   N_LIST=(200)
   P_LIST=(1000)
   A_LIST=(0.7)
-#  A_SHIFT_LIST=(0.25 0.1 0.0 -0.1 -0.25)
-  A_SHIFT_LIST=(0.25)
+  A_SHIFT_LIST=(0.25 0.1 0.0 -0.1 -0.25)
+#  A_SHIFT_LIST=(0.25)
   PURITY_LIST=(0.5) # 0.75 0.9)
 #  PURITY_LIST=(0.5)
-  GAMMA_LIST=(0.005)
+  GAMMA_LIST=(1 0.1 0.01 0.005 0.002 0.001 0.0001 0.00001 0.000001)
+#  GAMMA_LIST=(0.005)
 #  GAMMA_LIST=(0.000001)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 1 10)
 
 fi
 
@@ -24,8 +25,8 @@ TIME=00-00:20:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix
-ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
-#ORDP="sbatch --account=sesia_658 --partition=sesia,shared --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
+#ORDP="sbatch --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
+ORDP="sbatch --account=sesia_658 --partition=sesia,shared --mem="$MEMO" --nodes=1 --ntasks=1 --cpus-per-task=1 --time="$TIME
 
 # Create directory for log files
 LOGS="logs"
@@ -68,9 +69,9 @@ for SEED in $SEED_LIST; do
                   # Print order
                   echo $ORD
                   # Submit order
-#                  $ORD
+                  $ORD
                   # Run command now
-                  ./$SCRIPT
+                  #./$SCRIPT
                 fi
               done
             done

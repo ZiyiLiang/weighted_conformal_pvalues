@@ -81,6 +81,8 @@ calib_size = 0.5
 alpha_list = [0.01, 0.02, 0.05, 0.1, 0.2]
 num_repetitions = 1
 
+gamma_euler = 0.577
+
 # Choose a family of one-class classifiers
 bboxes_one_in = [OneClassSVM(kernel='rbf', gamma=0.0005)]
 bboxes_one_out = [OneClassSVM(kernel='rbf', gamma=gamma)] 
@@ -151,7 +153,7 @@ def run_experiment(dataset, random_state):
     results_tmp["Model"] = "Ensemble"
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
     results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
-    results_tmp["1/log(n1+1)"] = 1.0/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    results_tmp["1/log(n1+1)"] = 1.0/(gamma_euler+np.log(int(X_out.shape[0]*calib_size)+1.0))
     results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
     results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
     results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
