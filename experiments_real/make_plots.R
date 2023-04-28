@@ -2,8 +2,8 @@ options(width=160)
 
 library(tidyverse)
 
-plot.1 <- TRUE  # Flowers
-plot.2 <- FALSE  # Animals
+plot.1 <- FALSE  # Flowers
+plot.2 <- TRUE  # Animals
 plot.3 <- FALSE  # Cars
 plot.4 <- FALSE  # Tabular
 plot.5 <- FALSE  # Flowers-CV
@@ -14,7 +14,7 @@ plot.6 <- FALSE  # Tabular-CV
 #############
 
 if(plot.1) {
-    idir <- "results_hpc/"
+    idir <- "results_hpc2/"
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
@@ -32,50 +32,60 @@ if(plot.1) {
     alpha.scale <- c(1, 0.75, 0.75)
 
     plot.fdr <- TRUE
+    xi.lab <- parse(text=latex2exp::TeX("Informativeness ($\\Xi$)"))
 
     if(plot.fdr) {
         results <- results.raw %>%
             mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("Power", "FDR")
+        metric.values <- c("Power", "TypeI", "Xi")
+        metric.labels <- c("Power", "FDR", xi.lab)
     } else {
         results <- results.raw %>%
             mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("TPR", "FPR")
+        metric.values <- c("Power", "TypeI", "Xi")
+        metric.labels <- c("TPR", "FPR", xi.lab)
     }
 
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
+    df.nominal <- tibble(Metric=c("TypeI", "Xi"), Mean=c(alpha.nominal,1)) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    df.limits <- tibble(Metric=c("TypeI", "Xi"), Mean=c(1,0)) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
     results.fdr.models <- results %>%
         group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()))
 
     results.fdr.oracle <- results %>%
         filter(Method %in% c("Binary", "One-Class")) %>%
         group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n())) %>%
         group_by(Data, n_in, n_out, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
-                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
+                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle],
+                  Xi=Xi[idx.oracle], Xi.se=Xi.se[idx.oracle]) %>%
         select(-idx.oracle)
 
+   
     df <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (one-class)", "Ensemble (one-class, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         rbind(results.fdr.oracle)
     results.fdr.mean <- df %>%
-        gather(Power, TypeI, key="Metric", value="Mean") %>%
-        select(-Power.se, -TypeI.se)
+        gather(Power, TypeI, Xi, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se, -Xi.se)
     results.fdr.se <- df %>%
-        gather(Power.se, TypeI.se, key="Metric", value="SE") %>%
-        select(-Power, -TypeI) %>%
+        gather(Power.se, TypeI.se, Xi.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI, -Xi) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
-               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric))
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric),
+               Metric = ifelse(Metric=="Xi.se", "Xi", Metric))
     results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
-        mutate(Metric = factor(Metric, metric.values, metric.labels))
+        mutate(Metric = factor(Metric, metric.values, metric.labels)) %>%
+        mutate(Purity = sprintf("Inliers: %.2f", Purity))
 
+    
     pp <- results.fdr %>%
         filter(Data=="images_flowers") %>%
         filter(Alpha==alpha.nominal) %>%
@@ -95,7 +105,7 @@ if(plot.1) {
         xlab("Number of outliers") +
         ylab("") +
         theme_bw()
-    pp %>% ggsave(file=sprintf("figures/experiment_real_flowers.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
+    ##pp %>% ggsave(file=sprintf("figures/experiment_real_flowers.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
     
     df <- results.fdr.models %>%
@@ -194,7 +204,7 @@ if(plot.1) {
 
 
 if(plot.2) {
-    idir <- "results_hpc/"
+    idir <- "results_hpc2/"
     ifile.list <- list.files(idir)
 
     results.raw <- do.call("rbind", lapply(ifile.list, function(ifile) {
@@ -205,54 +215,66 @@ if(plot.2) {
         }
     }))
 
-    method.values <- c("Ensemble (one-class)", "Ensemble", "Ensemble (mixed, unweighted)", "One-Class", "Binary")
-    method.labels <- c("Integrative (occ)", "Integrative", "Integrative (unw)", "OCC (oracle)", "Binary (oracle)")
-    color.scale <- c("violet", "darkviolet", "orange", "red", "blue")
-    shape.scale <- c(8, 8, 8, 3, 1, 1)
-    alpha.scale <- c(1, 1, 1, 0.75, 0.75)
+    ## method.values <- c("Ensemble (one-class)", "Ensemble", "Ensemble (mixed, unweighted)", "One-Class", "Binary")
+    ## method.labels <- c("Integrative (occ)", "Integrative", "Integrative (unw)", "OCC (oracle)", "Binary (oracle)")
+    ## color.scale <- c("violet", "darkviolet", "orange", "red", "blue")
+    ## shape.scale <- c(8, 8, 8, 3, 1, 1)
+    ## alpha.scale <- c(1, 1, 1, 0.75, 0.75)
+    method.values <- c("Ensemble", "Ensemble (mixed, unweighted)", "One-Class", "Binary")
+    method.labels <- c("Integrative", "Integrative (unw)", "OCC (oracle)", "Binary (oracle)")
+    color.scale <- c("darkviolet", "orange", "red", "blue")
+    shape.scale <- c(8, 8, 3, 1, 1)
+    alpha.scale <- c(1, 1, 0.75, 0.75)
 
     plot.fdr <- TRUE
+    xi.lab <- parse(text=latex2exp::TeX("Informativeness ($\\Xi$)"))
 
     if(plot.fdr) {
         results <- results.raw %>%
             mutate(TypeI=`Storey-BH-FDP`, Power=`Storey-BH-Power`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("Power", "FDR")
+        metric.values <- c("Power", "TypeI", "Xi")
+        metric.labels <- c("Power", "FDR", xi.lab)
     } else {
         results <- results.raw %>%
             mutate(TypeI=`Fixed-FPR`, Power=`Fixed-TPR`)
-        metric.values <- c("Power", "TypeI")
-        metric.labels <- c("TPR", "FPR")
+        metric.values <- c("Power", "TypeI", "Xi")
+        metric.labels <- c("TPR", "FPR", xi.lab)
     }
 
     alpha.nominal <- 0.1
-    df.nominal <- tibble(Metric="TypeI", Mean=alpha.nominal) %>%
+    df.nominal <- tibble(Metric=c("TypeI", "Xi"), Mean=c(alpha.nominal,1)) %>%
+        mutate(Metric = factor(Metric, metric.values, metric.labels))
+    df.limits <- tibble(Metric=c("TypeI", "Xi", "Xi"), Mean=c(1,0,1.1)) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
     results.fdr.models <- results %>%
         group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI))
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()))
 
     results.fdr.oracle <- results %>%
         filter(Method %in% c("Binary", "One-Class")) %>%
         group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
-        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI)) %>%
+        summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n())) %>%
         group_by(Data, n_in, n_out, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
-                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle]) %>%
+                  TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle],
+                  Xi=Xi[idx.oracle], Xi.se=Xi.se[idx.oracle]) %>%
         select(-idx.oracle)
 
     df <- results.fdr.models %>%
         filter(Method %in% c("Ensemble", "Ensemble (one-class)", "Ensemble (one-class, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (mixed, unweighted)", "Ensemble (binary, unweighted)", "Ensemble (one-class, unweighted)")) %>%
         rbind(results.fdr.oracle)
     results.fdr.mean <- df %>%
-        gather(Power, TypeI, key="Metric", value="Mean") %>%
-        select(-Power.se, -TypeI.se)
+        gather(Power, TypeI, Xi, key="Metric", value="Mean") %>%
+        select(-Power.se, -TypeI.se, -Xi.se)
     results.fdr.se <- df %>%
-        gather(Power.se, TypeI.se, key="Metric", value="SE") %>%
-        select(-Power, -TypeI) %>%
+        gather(Power.se, TypeI.se, Xi.se, key="Metric", value="SE") %>%
+        select(-Power, -TypeI, -Xi) %>%
         mutate(Metric = ifelse(Metric=="Power.se", "Power", Metric),
-               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric))
+               Metric = ifelse(Metric=="TypeI.se", "TypeI", Metric),
+               Metric = ifelse(Metric=="Xi.se", "Xi", Metric))
     results.fdr <- results.fdr.mean %>% inner_join(results.fdr.se) %>%
         mutate(Metric = factor(Metric, metric.values, metric.labels))
 
@@ -280,6 +302,29 @@ if(plot.2) {
     pp
 ##    pp %>% ggsave(file=sprintf("figures/experiment_real_animals.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
+    pp <- results.fdr %>%        
+        filter(Data=="images_animals") %>%
+        filter(Alpha==alpha.nominal) %>%
+        filter(Method %in% method.values) %>%
+        mutate(Method = factor(Method, method.values, method.labels)) %>%
+        mutate(n_in = sprintf("Inliers: %d", n_in)) %>%
+        ggplot(aes(x=n_out, y=Mean, color=Method, shape=Method, alpha=Method)) +
+        geom_point() +
+        geom_point(x=0, aes(y=Mean), data=df.limits, color="white", shape=1, alpha=0) +
+        geom_line() +
+        geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=0.1) +
+        geom_hline(aes(yintercept=Mean), data=df.nominal, linetype=2) +
+        facet_grid(Metric~n_in, scales="free", labeller=label_parsed) +
+        scale_x_log10() +
+        scale_y_continuous(lim=c(0,1.1), breaks=c(0,0.25,0.5,0.75,1)) +
+        scale_color_manual(values=color.scale) +
+        scale_shape_manual(values=shape.scale) +
+        scale_alpha_manual(values=alpha.scale) +
+        xlab("Number of outliers") +
+        ylab("Power") +
+        theme_bw()
+    pp
+##    pp %>% ggsave(file=sprintf("figures/experiment_real_animals_large.pdf", ifelse(plot.fdr, "bh", "fixed")), width=5.5, height=2.25, units="in")
 
     
     df <- results.fdr.models %>%

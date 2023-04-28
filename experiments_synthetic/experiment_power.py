@@ -132,6 +132,9 @@ def run_experiment(dataset, random_state):
     results_tmp["E_U1_Y0"] = np.nan
     results_tmp["E_U1_Y0_approx"] = np.nan
     results_tmp["1/log(n1+1)"] = np.nan
+    results_tmp["xi-2"] = np.nan
+    results_tmp["xi-2-hat"] = np.nan 
+    results_tmp["xi"] = np.nan
     results = pd.concat([results, results_tmp])
 
     ## Conformal p-values via weighted one-class classification and learning ensemble
@@ -149,6 +152,9 @@ def run_experiment(dataset, random_state):
     results_tmp["E_U1_Y0"] = np.mean(pvals_test_1[Y_test==0])
     results_tmp["E_U1_Y0_approx"] = np.mean(pvals_ref)
     results_tmp["1/log(n1+1)"] = 1.0/np.log(int(X_out.shape[0]*calib_size)+1.0)
+    results_tmp["xi-2"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0"]
+    results_tmp["xi-2-hat"] = results_tmp["1/log(n1+1)"] / results_tmp["E_U1_Y0_approx"]
+    results_tmp["xi"] = (1/np.mean(1/pvals_test_1[Y_test==1]))/np.mean(pvals_test_1[Y_test==0])
     results = pd.concat([results, results_tmp])
 
     return results
