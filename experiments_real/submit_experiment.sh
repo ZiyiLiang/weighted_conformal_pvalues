@@ -12,7 +12,7 @@ elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("images_animals")
   N_IN_LIST=(1000 10000)
   N_OUT_LIST=(2 5 10 20 30 50 75 100 150 200 500 1000) # 1000 2000) # 5000)
-  SEED_LIST=$(seq 2 10)
+  SEED_LIST=$(seq 1 100)
 
 elif [[ $SETUP == 3 ]]; then
   DATA_LIST=("images_cars")
@@ -32,7 +32,7 @@ fi
 
 # Slurm parameters
 MEMO=5G                             # Memory required (5 GB)
-TIME=00-01:00:00                    # Time required (20 m)
+TIME=00-02:00:00                    # Time required (20 m)
 CORE=1                              # Cores required (1)
 
 # Assemble order prefix

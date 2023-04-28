@@ -9,7 +9,7 @@ if [[ $SETUP == 1 ]]; then
   P_LIST=(1000)
   A_LIST=(0.7)
   PURITY_LIST=(0.5 0.75 0.9)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 1 100)
 
 elif [[ $SETUP == 2 ]]; then
   DATA_LIST=("circles-mixed")
