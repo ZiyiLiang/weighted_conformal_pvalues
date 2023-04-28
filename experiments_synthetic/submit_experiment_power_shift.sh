@@ -15,7 +15,7 @@ if [[ $SETUP == 1 ]]; then
   GAMMA_LIST=(1 0.1 0.01 0.005 0.002 0.001 0.0001 0.00001 0.000001)
 #  GAMMA_LIST=(0.005)
 #  GAMMA_LIST=(0.000001)
-  SEED_LIST=$(seq 1 1)
+  SEED_LIST=$(seq 1 100)
 
 fi
 
