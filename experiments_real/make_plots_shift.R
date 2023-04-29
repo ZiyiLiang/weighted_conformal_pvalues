@@ -123,10 +123,10 @@ make.plot.shift(7824, 3, y.max=0.75)
 
 make.plot.shift.single <- function(n_in.plot, outlier.group, y.max=0.75) {
 
-method.values <- c("Integrative (one-class)", "Ensemble", "One-Class", "Binary")
-method.labels <- c("Integrative (OCC)", "Integrative", "OCC (oracle)", "Binary (oracle)")
-color.scale <- c("violet", "darkviolet", "red", "blue")
-shape.scale <- c(7, 8, 3, 1, 1)
+method.values <- c("Ensemble", "Integrative (one-class)", "One-Class", "Binary")
+method.labels <- c("Integrative", "Integrative (OCC)", "OCC (oracle)", "Binary (oracle)")
+color.scale <- c("darkviolet", "violet", "red", "blue")
+shape.scale <- c(8, 7, 3, 1, 1)
 alpha.scale <- c(1, 1, 0.75, 0.75)
 
 plot.fdr <- TRUE
@@ -219,6 +219,7 @@ pp <- results.fdr %>%
 }
 
 make.plot.shift.single(7824, 3, y.max=0.75)
+make.plot.shift.single(7824, 1, y.max=0.75)
 
 
 ## n_in.plot=7824
