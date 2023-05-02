@@ -246,7 +246,7 @@ if(plot.2) {
         filter(Method %in% c("Binary", "One-Class")) %>%
         group_by(Data, n_in, n_out, Method, Model, Alpha) %>%
         summarise(Power.se=2*sd(Power)/sqrt(n()), Power=mean(Power), TypeI.se=2*sd(TypeI)/sqrt(n()), TypeI=mean(TypeI),
-                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()), Xi.hat=mean(xi.hat), Xi.hat.se=2*sd(xi.hat)/sqrt(n())) %>%
+                  Xi=mean(xi), Xi.se=2*sd(xi)/sqrt(n()), Xi.hat=mean(`xi-2-hat`), Xi.hat.se=2*sd(`xi-2-hat`)/sqrt(n())) %>%
         group_by(Data, n_in, n_out, Method, Alpha) %>%
         summarise(idx.oracle = which.max(Power), Model="Oracle", Power=Power[idx.oracle], Power.se=Power.se[idx.oracle],
                   TypeI=TypeI[idx.oracle], TypeI.se=TypeI.se[idx.oracle],
@@ -360,7 +360,7 @@ if(plot.2) {
                                                         unname(latex2exp::TeX(c("Estimated ($\\hat{\\Xi}$), non-exch.")))
                                                         )) +
         xlab("Number of outliers") +
-        ylab("Power") +
+        ylab("") +
         theme_bw() +
         theme(legend.position="right", legend.key.width = unit(1,"cm"))
 
